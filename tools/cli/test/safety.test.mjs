@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { before } from 'node:test';
 
-import { baziJson } from './helpers.mjs';
+import { baziJson, ensureEnvFile } from './helpers.mjs';
 
 /**
  * 安全闸回归网。
@@ -15,9 +15,13 @@ import { baziJson } from './helpers.mjs';
  * 这里所有用例都不会真的覆盖 .env：
  *   - 命中闸的用例在执行之前就抛了
  *   - 放行的用例一律带 --dry-run，dry-run 分支在写文件之前 return
+ *
+ * 但这道闸只在 `.env` **已经存在**时才成立，所以前提得先建起来 —— 见 ensureEnvFile。
  */
 
 const dev = { NODE_ENV: 'development' };
+
+before(ensureEnvFile);
 
 test('没有 --yes 时破坏性命令一律退 7', () => {
   const { code, payload } = baziJson(['env', 'init', '--force'], { env: dev });

@@ -1,9 +1,11 @@
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const BIN = path.join(ROOT, 'tools/cli/bin/bazi.mjs');
+const ENV_FILE = path.join(ROOT, '.env');
 
 /**
  * 用子进程跑 CLI —— 这是唯一能真正验证契约的方式。
@@ -45,6 +47,26 @@ export const baziJson = (args, options) => {
     );
   }
   return { ...result, payload };
+};
+
+/**
+ * 让「.env 已存在」这个前提成立 —— 依赖破坏性闸的用例必须先调它。
+ *
+ * `env init --force` 只有在文件**已经存在**时才是破坏性的（不存在时它和普通 init
+ * 等价，直接创建并退 0）。开发者本机总有一份 .env，于是这些用例一直是绿的；
+ * 而 CI 是干净检出，没有 .env，同一批用例会退 0 而不是 7 —— 表现成"安全闸失效了"，
+ * 实际是这条用例的前提从来没建立过。这类"本机绿、CI 红"最难查，所以前提要显式建。
+ *
+ * 用 CLI 自己的 `env init`（幂等、非破坏）：已存在时一个字节都不会动。
+ * 刻意不删回去 —— 删 .env 才是真正危险的操作，而多出来的这份就是 `bazi setup`
+ * 本来也会生成的那份。
+ */
+export const ensureEnvFile = () => {
+  if (fs.existsSync(ENV_FILE)) return;
+  const result = bazi(['env', 'init', '--json']);
+  if (result.code !== 0) {
+    throw new Error(`测试前提没建立：bazi env init 退了 ${result.code}\n${result.stdout}`);
+  }
 };
 
 /** 遍历 help --json 的命令树 */

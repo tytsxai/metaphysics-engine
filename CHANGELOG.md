@@ -135,6 +135,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Fixed
 
+- **The safety-gate tests silently required a `.env` to already exist**, which made them pass
+  on any developer machine and fail in a clean checkout. `env init --force` is only
+  destructive when there is a file to overwrite — with no `.env` it is equivalent to a plain
+  init and exits 0 — so every case that used it as "the command that exits 7" was asserting
+  against a precondition it never established. The first such case then created a `.env` as a
+  side effect, which is why only one of them failed rather than all of them. The precondition
+  is now set up explicitly (`ensureEnvFile`, idempotent, touches nothing if the file exists).
+  This never surfaced because the CLI contract tests had never actually run in CI: the
+  backend step ahead of them failed first.
 - **The backend suite never ran on Node 20 in CI.** The test scripts passed a quoted glob
   (`node --test "test/**/*.test.js"`); expanding that pattern is a Node 21+ feature, so on
   Node 20 it is taken literally, the runner prints `Could not find …` and exits 1. The 20.x

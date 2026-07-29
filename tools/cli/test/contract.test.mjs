@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { before } from 'node:test';
 
-import { bazi, baziJson } from './helpers.mjs';
+import { bazi, baziJson, ensureEnvFile } from './helpers.mjs';
 
 /**
  * CLI 与 Agent 之间的契约测试。
@@ -19,6 +19,9 @@ import { bazi, baziJson } from './helpers.mjs';
  * 退出码可能是 0 也可能是 3（环境没准备好），这里不关心；
  * 关心的是不管成功失败，stdout 都必须是一个能解析的 JSON 文档。
  */
+// 几条用例拿 `env init --force` 当"退 7 的命令"用，那道闸要 .env 存在才成立。
+before(ensureEnvFile);
+
 const READONLY_COMMANDS = [
   [],
   ['help'],
