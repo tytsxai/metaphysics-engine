@@ -1,6 +1,6 @@
 {
   "name": "metaphysics-engine",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Self-hostable, stateless Chinese metaphysics calculation engine — BaZi, Zi Wei Dou Shu, Liu Yao, Da Liu Ren, Qi Men Dun Jia, Ba Zhai feng shui, almanac, name grids, Tarot, I Ching, Zodiac and Synastry — exposed as a documented HTTP API and an agent-callable programmatic CLI.",
   "license": "UNLICENSED",

@@ -1,6 +1,6 @@
 # Metaphysics Engine - 开发指南
 
-> 版本: v0.2.0 | 更新: 2026-07-29
+> 版本: v0.3.0 | 更新: 2026-07-29
 
 Metaphysics Engine 是一个无状态的算法能力层：Express 提供 HTTP 接口，算法逻辑全在
 `backend/services/`，没有数据库，没有前端。本文面向本地开发、二次开发和自部署前的验证。

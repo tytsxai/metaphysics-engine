@@ -1,7 +1,7 @@
 {
   "name": "bazi-master-backend",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Stateless HTTP surface over the BaZi / Zi Wei Dou Shu / Tarot / I Ching / Zodiac / Synastry calculation engine, with OpenAPI, health checks and optional AI providers.",
   "license": "UNLICENSED",
