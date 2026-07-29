@@ -82,6 +82,8 @@ client you build, or wire it into an AI agent as a tool.
   OpenAPI / Swagger UI, graceful shutdown with a drain window.
 - **Programmatic CLI** — `./bazi` wraps both the algorithms and repo operations; every command
   supports `--json` and a documented exit-code contract, which makes it directly agent-callable.
+  `./bazi schema` exports the command tree as tool definitions (Anthropic / OpenAI / MCP) for an
+  agent runtime to register — generated from the same tree, so there is no second list to drift.
 
 ### One boundary running through every capability: casting belongs to the engine, interpretation to the caller
 

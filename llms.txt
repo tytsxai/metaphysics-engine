@@ -146,6 +146,13 @@ Two categories of commands:
 `./bazi help --json` is the machine-readable full command tree and the single source of truth for
 capabilities. Documentation deliberately does not duplicate the command list.
 
+`./bazi schema` exports that same tree as agent tool definitions — `--format anthropic` (default),
+`openai` or `mcp` — so an agent runtime can register these capabilities without translating the
+help output itself. It runs locally and does not need the engine. Capability commands only by
+default; operations require an explicit `--scope ops`. Under `--json` the envelope also carries a
+`catalog` mapping every parameter back to a flag or positional, so a tool call can be turned into
+an argv without guesswork.
+
 Contract details:
 
 - Every command supports `--json`: stdout carries exactly one JSON document, progress and noise go to stderr.

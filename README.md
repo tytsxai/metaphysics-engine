@@ -162,7 +162,15 @@ curl -X POST http://127.0.0.1:4000/api/tarot/draw \
 - Swagger UI: `http://127.0.0.1:4000/api-docs`
 - OpenAPI JSON: `http://127.0.0.1:4000/api-docs.json`
 
-给智能体接入时，`docs/openapi.json` 可以直接转成 tool schema；所有业务接口都无需鉴权。
+给智能体接入时，`./bazi schema` 直接把命令树导出成 tool schema（anthropic / openai / mcp 三种形状），
+不需要引擎在跑：
+
+```bash
+./bazi schema --format openai > tools.json
+```
+
+`--json` 模式还会附一份 catalog，说明每个参数拼成 argv 的哪一部分。要走 HTTP 而不是 CLI，
+用 `docs/openapi.json`；所有业务接口都无需鉴权。
 
 ## 适用场景 / Use Cases
 

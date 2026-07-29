@@ -8,6 +8,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
+- **`bazi schema` exports the command tree as agent tool definitions** (Anthropic, OpenAI or
+  MCP shape), so an agent runtime's tool registry can load this project's capabilities without
+  reading `help --json` and translating it itself. Generated from the same tree the help
+  command serves — there is no second, hand-written list to drift. Purely local; the engine
+  does not need to be running. Capability commands (`calc` / `cast`) only by default: the ops
+  commands mutate this repository and one of them is destructive, so they take an explicit
+  `--scope ops`. The `--json` envelope carries a `catalog` alongside the paste-ready `tools`,
+  mapping each property back to a flag or positional so a tool call can be turned into an
+  argv without guesswork. Reproducibility is stated in each tool's own description, because
+  the runtime loading the schema may never see the project's docs, and treating a `cast`
+  result as reproducible is the most common way to misuse this engine.
+- **Required parameters are now declared, not just enforced.** Commands used to check for
+  missing arguments inside their `run` body, which made the requirement invisible to anything
+  reading the command tree — an exported schema would have claimed every parameter was
+  optional. `required` (plus `choices` and `variadic`) now lives on the flag and argument
+  specs, `parseArgs` enforces it centrally, and `--help`, `help --json` and `bazi schema` all
+  read the same declaration. Contract tests assert both directions: every parameter the schema
+  calls required really does fail with exit 2 when omitted, and none is required that the
+  command's own first example does not supply.
+
 - **Solar-term boundaries are now resolved to the minute, in one shared place.** Anything that
   splits on a solar term — BaZi year/month pillars, the Da Liu Ren month general, the Qi Men
   bureau, the Ba Zhai life trigram — used to compare _dates_, so the day a term falls on could

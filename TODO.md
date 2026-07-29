@@ -10,7 +10,7 @@
 | 算法能力 | 八字/紫微/六爻/六壬/奇门/八宅/择吉/姓名/塔罗/易经/星座/合盘 |
 | 运行形态 | 无状态纯计算，没有数据库                                    |
 | 后端测试 | 475 项通过                                                  |
-| CLI 契约 | 83 项通过                                                   |
+| CLI 契约 | 97 项通过                                                   |
 | Lint     | 通过，无 warning                                            |
 | 部署验证 | `scripts/verify-deployment.sh` 6 项全过                     |
 | Redis    | 可选，纯缓存，缺失不影响结果                                |
@@ -27,7 +27,8 @@
       `null`）。真太阳时现在参与排盘了，这个静默跳过的代价比以前大 —— 要么扩表，
       要么让「认不出」在响应里更显眼。
 - [ ] 后端覆盖率门槛：`test:coverage` 存在但无阈值，CI 也没跑
-- [ ] 给调用方的接入示例：把 `docs/openapi.json` 转成 agent tool schema 的最小样例
+- [ ] Agent Benchmark 底座：拿 `calc` 的确定性建 golden case 集，量化成功率/步骤数/错误率。
+      `cast` 不可复现，不能进断言集
 - [ ] 部署时按所用 LB 查表设 `SHUTDOWN_DRAIN_MS`：机制已实测（+2ms 摘流、
       误差 10ms 量级，见 PRODUCTION.md 的对照表），但默认 5000 只够 nginx 被动检查；
       换 k8s 要 35000、ALB 要 65000，且都要同步抬高 `stop_grace_period`
@@ -36,6 +37,13 @@
 - [ ] TypeScript 迁移评估
 
 ## 已完成
+
+### 能力接口（本轮）
+
+- [x] `bazi schema`：从命令树导出 agent tool schema（anthropic / openai / mcp 三种形状），
+      供上层 Runtime 的 Tool Registry 装载。纯本地生成，默认只导出 calc / cast
+- [x] 必填改成声明式（`required` / `choices` / `variadic` 落到 flag 与 arg 的 spec 上），
+      `parseArgs` 统一校验 —— 此前写在 run 里，导出的 schema 会声称"什么都不必填"
 
 ### 算法能力层（本轮）
 

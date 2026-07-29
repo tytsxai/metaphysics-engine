@@ -9,6 +9,7 @@ import { doctorCommand } from './commands/doctor.mjs';
 import { envCommand } from './commands/env.mjs';
 import { stackCommand } from './commands/stack.mjs';
 import { testCommand } from './commands/test.mjs';
+import { schemaCommand } from './commands/schema.mjs';
 import { helpCommand, helpPayload } from './commands/help.mjs';
 
 export const rootCommand = defineCommand({
@@ -26,6 +27,7 @@ export const rootCommand = defineCommand({
     envCommand,
     stackCommand,
     testCommand,
+    schemaCommand,
     helpCommand,
   ],
   examples: [

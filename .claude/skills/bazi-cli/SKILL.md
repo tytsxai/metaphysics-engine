@@ -314,6 +314,31 @@ lunar-javascript 用**负数月份**表示闰月（闰二月 = `-2`）：
 Agent 在调用能力命令前，可以用 `./bazi stack status --require-ready --json` 做前置断言：
 未就绪直接退 3。不过能力命令自己也会在连不上时退 3 并给出 `next`，所以通常不必先探。
 
+## 把能力装进上层 Agent：bazi schema
+
+`bazi schema` 把命令树导出成 agent tool schema —— 上层 Runtime 的 Tool Registry 装载它，
+就不必读 `help --json` 再自己翻译一遍。**纯本地生成，不需要引擎在跑。**
+
+```
+./bazi schema --json                       # 算法能力，Anthropic 格式
+./bazi schema --format openai > tools.json # 文本模式的 stdout 就是裸数组，可直接重定向
+./bazi schema --scope all --format mcp --json
+```
+
+三件要知道的事：
+
+- **默认只导出 `calc` / `cast`。** 运维命令要 `--scope ops` 显式取 —— 它们会改这个仓库，
+  其中还有破坏性的，不该默认变成模型随手可调的工具。
+- **`--json` 才有 `catalog`。** `tools` 是可以直接贴给 API 的干净定义（不夹带自定义字段，
+  否则 Anthropic / OpenAI 会当非法字段拒掉）；把一次工具调用还原成 argv 所需的映射
+  ——哪个 property 拼成 `--flag`、哪个是位置参数、布尔怎么处理——全在 `catalog` 和
+  `invocation` 里。调用时**总是追加 `--json`**。
+- **可复现性进了工具描述。** `cast` 的两条工具在 description 里明说结果不保证一致，
+  因为装载 schema 的 Runtime 不一定读得到这份文档，而"拿塔罗结果做断言"是最常见的误用。
+
+这条命令不需要维护：新增命令后它自动带上，前提是那条命令按上面「要改 CLI 本身的时候」
+那节的硬约束把 `required` / `choices` / `variadic` 声明齐全。
+
 ## --dry-run：动手之前先问它
 
 会改东西的命令都支持 `--dry-run`，打印"会做什么"然后返回 0，不执行。
@@ -403,6 +428,11 @@ BAZI_API_URL=https://engine.example.com ./bazi calc bazi --birth ... --json
 - **`--json` 模式下 stdout 只能有一个 JSON 文档。** 想给人打东西用 `out.render`
   （json 模式自动跳过），想说进度用 `out.step` / `out.warn`（走 stderr，同时进
   `payload.notes`）。子进程一律用 `out.childStdio`。
+- **必填要声明成 `required: true`，不要写在 `run` 里。** 校验由 `parseArgs` 统一做，
+  写在 run 里的 `if (flags.x === undefined) throw` 有一个看不见的后果：`bazi schema`
+  导出的 tool schema 读的是声明，于是它会告诉上层"这个参数可选"，上层照做，必然失败。
+  同理，取值集合用 `choices`，并且和 run 里校验用的那个常量是同一个（`GENDERS` 那样）。
+  位置参数能给多个时标 `variadic: true`，否则导出的 schema 一次只让传一个。
 - **命令自己的 flag 不能和全局 flag 重名**，否则会被 `flagSpecFor` 的查找顺序静默吃掉。
 - **`examples` 里的命令和选项必须真实存在**，测试会逐条解析。
 - **破坏性命令要 `destructive: true`**，并且过 `assertDestructiveAllowed`。
