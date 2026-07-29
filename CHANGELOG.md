@@ -8,6 +8,39 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
+- **`/metrics` now reports request volume, error rate, latency and rate-limit rejections.**
+  Everything it exposed before described the _process_ — it is up, it has this much memory,
+  its dependency answered a ping — and nothing described the work. That left one failure
+  mode entirely unobservable: an instance that is alive, whose only dependency is a healthy
+  optional cache, and which answers 500 to every request looks perfectly healthy through
+  every signal in the stack. `/live` and `/health` both return 200, `bazi_up` is 1,
+  `bazi_dependency_up` is 1, so the container healthcheck stays green, autoheal leaves it
+  alone and the load balancer keeps sending traffic. No alert could fire, because nothing
+  was measuring requests — while `PRODUCTION.md` already told operators to alert on error
+  rate and p95, neither of which the engine emitted. Four new families close that:
+  `bazi_http_requests_total{status_class}`, `bazi_http_request_duration_seconds` (a
+  histogram, for `histogram_quantile`), `bazi_http_rate_limited_total` and
+  `bazi_http_requests_in_flight`, with ready-made alert rules in `PRODUCTION.md`.
+  Deliberately **not** labelled by route: the API is public and unauthenticated, so the
+  standing background of scanners probing invented paths would mint a time series each and
+  kill Prometheus on cardinality long before volume — "which endpoint" is a question for the
+  logs, which carry the full URL and a request id. Probe paths are excluded for the same
+  reason the access log skips them: in a quiet hour they are most of the traffic, and
+  counting them would pull the latency histogram toward "trivially fast" and dilute the
+  error rate with requests no caller made. All four status classes are emitted even at
+  zero, so `rate(...{status_class="5xx"})` returns 0 rather than no-data — an absent series
+  makes an error-rate alert unable to fire until after the first error.
+- **CI builds the production image and smoke-tests it in production mode.** Everything else
+  in the pipeline runs the engine from a source checkout in development or test mode, but
+  operators deploy an image and run it with `NODE_ENV=production`, which reaches code paths
+  nothing else does. Two shipped defects lived in exactly that blind spot — an unbuildable
+  Dockerfile and a production boot whose probes all returned 500 — and both survived a fully
+  green suite. The new `image` job builds `backend/Dockerfile`, starts the container
+  **without Redis on purpose** (the configuration the docs call optional and the one that was
+  broken), and asserts the probes, the `/metrics` and `/api-docs` auth defaults, a real chart
+  calculation, and a clean exit code after `docker stop` — which also covers the SIGTERM
+  forwarding that `scripts/start.mjs` exists to provide. The container does not inherit the
+  runner's `CI=true`, so it sees production exactly as a deployed instance does.
 - **`bazi schema` exports the command tree as agent tool definitions** (Anthropic, OpenAI or
   MCP shape), so an agent runtime's tool registry can load this project's capabilities without
   reading `help --json` and translating it itself. Generated from the same tree the help
@@ -135,6 +168,38 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Fixed
 
+- **A production instance without `REDIS_URL` failed every deep health probe.**
+  `config/redis.js` threw `REDIS_URL is required for production sessions.` whenever
+  `NODE_ENV=production` and no URL was set — a rule inherited from the session layer, when
+  Redis held state the service could not be correct without. Redis is now a pure cache, and
+  `PRODUCTION.md`, `validateProductionConfig` and `docker-compose.prod.yml` all describe it
+  as optional, but the throw outlived the sessions. `checkRedis` calls `initRedis` with no
+  arguments, so the rejection propagated out through `getHealthSnapshot` into the handlers:
+  `/health`, `/api/ready` and `/metrics` all answered 500 while `/live` and every business
+  endpoint worked. A load balancer reading `/api/ready` never puts such an instance into
+  service, so the deployment mode the docs call optional could not serve a single request,
+  and `/metrics` being 500 meant the monitoring that would have shown it was dark too.
+  Only an explicit `require: true` throws now. Two things hid this: the guard exempted
+  `CI`, and the reference compose stack pins `REDIS_URL`, so neither the suite nor the
+  reference deployment ever took the path. A test asserted the throwing behaviour, so the
+  bug was green.
+- **The production image could not be built at all.** `backend/Dockerfile` still ran
+  `apk add openssl`, `COPY prisma ./prisma/` and `RUN npm run prisma:generate`, all three
+  left behind when the storage layer was deleted. There is no `prisma/` directory and no
+  `prisma:generate` script, so `docker build` failed on the COPY — meaning the documented
+  deploy command, `docker compose -f docker-compose.prod.yml up -d --build`, produced
+  nothing. No CI job built this file, which is why it went unnoticed. Dependencies now
+  install with `--omit=dev` as well: the only devDependency is the test runner's supertest,
+  and shipping test tooling in a production image is dead weight and extra attack surface.
+- **`bazi_rate_limit_degraded` was pinned at 1 on any deployment without Redis**, and the
+  limiter logged `[rate-limit] Redis unavailable` at error level every 60 seconds about a
+  Redis that was never configured. The `BaziRateLimitDegraded` alert recommended in
+  `PRODUCTION.md` therefore fired on day one and never cleared. Degradation now means what
+  it says — Redis was configured and did not answer. Running without it is a supported
+  single-instance mode, and its one real consequence (the quota is enforced per instance,
+  so N instances allow N × `RATE_LIMIT_MAX`) is now stated in the startup warning instead,
+  once, where it belongs. The limit itself is unchanged and still enforced from the
+  in-memory store.
 - **The safety-gate tests silently required a `.env` to already exist**, which made them pass
   on any developer machine and fail in a clean checkout. `env init --force` is only
   destructive when there is a file to overwrite — with no `.env` it is equivalent to a plain
@@ -495,5 +560,5 @@ This is a **reference / sample project**. Output is generated by language models
 - Frontend React SPA with i18n, routing, and Playwright E2E specs.
 - Prisma schema with initial migration targeting PostgreSQL.
 
-[0.2.0]: https://github.com/tytsxai/bazi-master/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/tytsxai/bazi-master/releases/tag/v0.1.0
+[0.2.0]: https://github.com/tytsxai-stack/metaphysics-engine/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/tytsxai-stack/metaphysics-engine/releases/tag/v0.1.0

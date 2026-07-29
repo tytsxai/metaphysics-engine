@@ -28,7 +28,7 @@ client you build, or wire it into an AI agent as a tool.
 
 | Field               | Answer                                                                                                                        |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Project type        | Private divination / astrology **calculation capability layer**, delivered as a self-hosted HTTP API + CLI                |
+| Project type        | Private divination / astrology **calculation capability layer**, delivered as a self-hosted HTTP API + CLI                    |
 | Problem solved      | Turns the silent-failure edge cases of these algorithms into a tested, contract-backed, callable capability                   |
 | Who it is for       | Backend developers adding metaphysics calculation to their own product; teams giving an AI agent a real tool                  |
 | Runtime shape       | **Stateless pure calculation** — no database, no accounts, no sessions, no file writes                                        |

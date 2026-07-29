@@ -12,8 +12,8 @@
 ## 30 秒把环境跑起来
 
 ```bash
-git clone https://github.com/tytsxai/bazi-master.git
-cd bazi-master
+git clone https://github.com/tytsxai-stack/metaphysics-engine.git
+cd metaphysics-engine
 ./bazi setup && ./bazi doctor && ./bazi stack up
 ./bazi test
 ```
@@ -36,7 +36,7 @@ cd bazi-master
 冬至跨年整段判错、时间起卦取数是编造的（见 [CHANGELOG.md](CHANGELOG.md)）。
 
 如果你懂某一门术数，帮忙核对排盘结果是最有价值的贡献。报告时请用
-[排盘口径问题模板](https://github.com/tytsxai/bazi-master/issues/new?template=algorithm_discrepancy.yml)，并尽量给出：
+[排盘口径问题模板](https://github.com/tytsxai-stack/metaphysics-engine/issues/new?template=algorithm_discrepancy.yml)，并尽量给出：
 
 - 完整可复现的输入（年月日时、性别、地点、时区）
 - 引擎当前输出 vs 你认为正确的输出
@@ -81,7 +81,7 @@ cd bazi-master
 
 ## 提 Issue 之前
 
-1. 搜一下[已有 issue](https://github.com/tytsxai/bazi-master/issues)
+1. 搜一下[已有 issue](https://github.com/tytsxai-stack/metaphysics-engine/issues)
 2. 跑 `./bazi doctor --json`，环境问题它多半能直接告诉你答案
 3. 报 bug 请附 `./bazi` 命令的 `--json` 输出，或 `curl` 的完整请求与响应
 4. **安全问题不要开公开 issue**，见 [SECURITY.md](SECURITY.md)
@@ -127,8 +127,17 @@ CI（[.github/workflows/ci.yml](.github/workflows/ci.yml)，Node 20.x 与 22.x �
 3. `./scripts/check-env-template.sh`——生产模板必须覆盖代码读取的每个环境变量
 4. OpenAPI 快照一致性
 5. `npm audit --omit=dev --audit-level=high`（只审运行时依赖）
-6. backend 测试 + CLI 契约测试
+6. backend 测试 + CLI 契约测试（22.x 那条腿另跑覆盖率门槛）
 7. 拿真实引擎验证能力契约里声明的可复现性
+8. 构建生产镜像，并**以生产模式、且不配 Redis** 起容器做冒烟：探针、鉴权默认值、
+   一次真实排盘、SIGTERM 退 0
+
+第 8 条是独立的 `image` job，因为它守的是前七条都看不见的东西：上面全部跑在源码
+检出、开发或测试模式下，而运维实际部署的是镜像、跑的是 `NODE_ENV=production`。
+这个盲区里曾同时躺着两个已发布的缺陷——`backend/Dockerfile` 还在 COPY 早已删掉的
+`prisma/`（镜像根本构建不出来），以及生产模式下不配 `REDIS_URL` 会让 `/health`、
+`/api/ready`、`/metrics` 全部 500（负载均衡永远不会把流量放进来）。两个都在一片
+全绿的测试里活了下来。容器不继承 runner 的 `CI=true`，看到的就是真实生产环境。
 
 > `./bazi test` 的目标未就绪时会记 `skipped` 并**照样返回 0**。
 > 读 `summary.skipped`，别只看退出码；要让「什么都没跑」变成硬失败就加 `--fail-on-skip`。
@@ -213,9 +222,9 @@ public issue.
 GitHub 仓库的 About 描述与 Topics 直接影响 GitHub 站内搜索和外部索引，建议设置为：
 
 ```bash
-gh repo edit tytsxai/bazi-master \
+gh repo edit tytsxai-stack/metaphysics-engine \
   --description "开源命理算法能力层：八字/紫微斗数/六爻/大六壬/奇门遁甲/风水/择吉/塔罗/周易/星座排盘，以无状态 HTTP API 与 Agent 可调用 CLI 交付。Open-source stateless BaZi & Chinese metaphysics calculation API for apps and AI agents." \
-  --homepage "https://github.com/tytsxai/bazi-master#readme" \
+  --homepage "https://github.com/tytsxai-stack/metaphysics-engine#readme" \
   --add-topic bazi --add-topic bazi-chart --add-topic bazi-api \
   --add-topic ziwei --add-topic ziwei-doushu --add-topic liuyao \
   --add-topic qimen --add-topic fengshui --add-topic tarot --add-topic iching \

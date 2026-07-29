@@ -31,11 +31,20 @@ const resetRateLimitState = () => {
 // Without Redis the limiter counts per process, so an N-instance deployment silently
 // hands out N times the configured quota. This used to return early in production, which
 // meant the one environment where that matters was also the only one that never said so.
-const warnOnFallback = (now = Date.now()) => {
+//
+// "Degraded" means Redis was asked for and did not answer. A deployment that never
+// configured REDIS_URL is running single-instance by choice — a supported mode, warned
+// about once at startup — not suffering an incident. Signalling it here pinned
+// bazi_rate_limit_degraded at 1 forever and logged an error every 60s claiming "Redis
+// unavailable" about a Redis that was never meant to exist, which fires the
+// BaziRateLimitDegraded alert in PRODUCTION.md permanently. An alert that is always red
+// is an alert nobody reads.
+const warnOnFallback = (now = Date.now(), env = process.env) => {
+  if (!env.REDIS_URL) return;
   lastFallbackAt = now;
   if (lastFallbackLogAt && now - lastFallbackLogAt < FALLBACK_LOG_INTERVAL_MS) return;
   lastFallbackLogAt = now;
-  if (process.env.NODE_ENV === 'production') {
+  if (env.NODE_ENV === 'production') {
     logger.error(
       { degraded: 'rate-limit-store' },
       '[rate-limit] Redis unavailable; falling back to the in-memory store. ' +

@@ -170,17 +170,44 @@ curl -H "Authorization: Bearer $METRICS_TOKEN" http://127.0.0.1:4000/metrics
 
 暴露的指标：
 
-| 指标                                                      | 用途                                                                              |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `bazi_up` / `bazi_uptime_seconds`                         | 存活与重启检测                                                                    |
-| `bazi_shutting_down`                                      | 1 表示正在排水，滚动发布期间预期为 1                                              |
-| `bazi_dependency_up{dependency="..."}`                    | 每个依赖一条时间序列，由健康快照直接驱动。未配置的可选依赖算 `disabled`，上报为 1 |
-| `bazi_rate_limit_degraded`                                | 1 表示限流已退化成单实例内存计数                                                  |
-| `bazi_process_resident_memory_bytes` / `_heap_used_bytes` | 内存趋势                                                                          |
+| 指标                                                          | 用途                                                                                  |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `bazi_up` / `bazi_uptime_seconds`                             | 存活与重启检测                                                                        |
+| `bazi_shutting_down`                                          | 1 表示正在排水，滚动发布期间预期为 1                                                  |
+| `bazi_dependency_up{dependency="..."}`                        | 每个依赖一条时间序列，由健康快照直接驱动。未配置的可选依赖算 `disabled`，上报为 1     |
+| `bazi_rate_limit_degraded`                                    | 1 表示配了 Redis 但用不上，限流已退化成单实例内存计数                                 |
+| `bazi_process_resident_memory_bytes` / `_heap_used_bytes`     | 内存趋势                                                                              |
+| `bazi_http_requests_total{status_class="2xx\|3xx\|4xx\|5xx"}` | 请求量与错误率。四条曲线恒定存在（没有流量时是 0），不会因为"还没出过错"而查不到      |
+| `bazi_http_request_duration_seconds`                          | 请求耗时直方图，配 `histogram_quantile()` 出 p95/p99                                  |
+| `bazi_http_rate_limited_total`                                | 被限流拒掉的请求数。它同时计在 `4xx` 里，单列是为了把"配额调太小"和"客户端在乱打"分开 |
+| `bazi_http_requests_in_flight`                                | 当前正在处理的请求数，堆积时先看这条                                                  |
+
+上面四条 `bazi_http_*` **不统计探针路径**（`/live`、`/health`、`/api/ready`、`/metrics`）。
+闲时探针就是绝大部分流量，算进去会把耗时分位数拉到"快得没有意义"，并且用没人发起过的
+请求稀释错误率——和访问日志跳过它们是同一个理由。
 
 建议的告警线：
 
 ```yaml
+# 5xx 比例。这是最重要的一条：进程活着、Redis 健康、每个请求都 500，
+# 在此之前所有信号（/live、/health、bazi_up、bazi_dependency_up）全是绿的，没有任何告警会响。
+- alert: BaziHighErrorRate
+  expr: |
+    sum(rate(bazi_http_requests_total{status_class="5xx"}[5m]))
+      / clamp_min(sum(rate(bazi_http_requests_total[5m])), 0.001) > 0.05
+  for: 5m
+
+# 延迟劣化。纯计算接口正常在几毫秒量级，p95 到 1s 说明事件循环被什么东西占住了。
+- alert: BaziHighLatency
+  expr: histogram_quantile(0.95, sum(rate(bazi_http_request_duration_seconds_bucket[5m])) by (le)) > 1
+  for: 10m
+
+# 流量整体消失（上游断了、或者被挡在 LB 外面）。按你的实际基线调阈值，
+# 常态低流量的部署直接删掉这条，不要留一条永远在响的告警。
+- alert: BaziNoTraffic
+  expr: sum(rate(bazi_http_requests_total[10m])) == 0 and bazi_shutting_down == 0
+  for: 15m
+
 # 限流退化：Redis 没了，配额变成"每实例"而不是"整个部署"
 - alert: BaziRateLimitDegraded
   expr: bazi_rate_limit_degraded == 1
@@ -192,8 +219,18 @@ curl -H "Authorization: Bearer $METRICS_TOKEN" http://127.0.0.1:4000/metrics
   for: 2m
 ```
 
+`clamp_min` 不是可有可无的：没有流量时分母是 0，比值会变成 `NaN`，
+表达式既不触发也不恢复，那条告警就等于不存在。
+
 `bazi_rate_limit_degraded` 是时间窗口信号，Redis 恢复后约 60s 自动归零，不需要重启进程。
 同一件事在日志里是每 60s 一条 `[rate-limit] Redis unavailable` 的 error。
+
+**它只在「配了 `REDIS_URL` 但用不上」时才置 1。** 压根没配 Redis 是受支持的单实例模式，
+不是故障：那种部署下限流本来就按实例计数，这件事在启动时由一条 warning 说明一次
+（`REDIS_URL is not configured...`），不会在运行期反复报警。这个区分是必要的 ——
+否则一个刻意不带 Redis 的部署会让上面那条告警从上线第一天起就一直红着，
+而永远红着的告警等于没有告警。多实例且不配 Redis 时请自己记住：
+实际放行量是 `RATE_LIMIT_MAX × 实例数`。
 
 ### 健康检查缓存
 
@@ -204,9 +241,14 @@ curl -H "Authorization: Bearer $METRICS_TOKEN" http://127.0.0.1:4000/metrics
 
 ### 其余建议监控
 
-- API p95 / 错误率
-- Redis 内存占用逼近 `REDIS_MAXMEMORY` 的比例（到顶后按 `volatile-lru` 淘汰）
-- `/api/ready` 返回状态
+引擎自己报不出来、需要从别处采的：
+
+- Redis 内存占用逼近 `REDIS_MAXMEMORY` 的比例（到顶后按 `volatile-lru` 淘汰）——从 Redis 自己的
+  `INFO memory` 采，引擎只知道它连不连得上
+- `/api/ready` 的返回状态（LB 侧视角：它到底把不把流量放进来）
+- 具体是哪个接口在报错：指标只到状态码分类，不带 route 标签——这是刻意的，
+  接口是公开的，扫描器每编一个路径就会多出一条时间序列，Prometheus 死于基数远早于死于流量。
+  要定位到接口去看日志，那里有完整 URL 和 request id。
 
 ## 6. 故障排查速查
 
@@ -221,6 +263,7 @@ curl -f http://127.0.0.1:4000/api/system/cache-status           # 缓存与 Redi
 | ---------------- | ------------------------------------------------------------------- |
 | 容器起来就退     | 日志里找 `[config]` —— 生产模式缺 `DOCS_PASSWORD` 是最常见的一条    |
 | `/health` 503    | 看 `checks` 字段哪个依赖挂了；只有 Redis 的话服务其实还能用         |
+| 探针一律 500     | 引擎版本过旧：v0.2.1 之前不配 `REDIS_URL` 起生产会让深度检查恒 500  |
 | 所有用户一起 429 | `TRUST_PROXY` 跳数数错，`req.ip` 变成了代理地址，全站共用一个限流桶 |
 | 浏览器报 CORS    | `CORS_ALLOWED_ORIGINS` 没登记该来源。服务端到服务端调用不受影响     |
 | `/metrics` 404   | 没配 `METRICS_TOKEN`。这是安全默认值，不是故障                      |

@@ -17,13 +17,28 @@ describe('Redis Production Safety', () => {
     mock.restoreAll();
   });
 
-  it('should throw error in production if REDIS_URL is missing', async () => {
+  // This assertion is inverted from what it used to be, deliberately. It previously
+  // required initRedis to THROW in production without REDIS_URL — a rule inherited from
+  // the session layer, when Redis held state the service could not be correct without.
+  // Redis is now a pure cache and both PRODUCTION.md and validateProductionConfig treat
+  // it as optional, so the throw had become a green test guarding an outage: checkRedis
+  // calls initRedis with no arguments, so the rejection surfaced as 500 on /health,
+  // /api/ready and /metrics. See the deep-check regression below.
+  it('returns null instead of throwing in production when REDIS_URL is missing', async () => {
     process.env.NODE_ENV = 'production';
-    process.env.CI = ''; // Ensure CI is falsy
+    process.env.CI = ''; // The old guard exempted CI, which is why the suite never saw this.
     delete process.env.REDIS_URL;
 
-    await assert.rejects(async () => initRedis({ env: process.env }), {
-      message: 'REDIS_URL is required for production sessions.',
+    const result = await initRedis({ env: process.env });
+    assert.strictEqual(result, null);
+  });
+
+  it('still throws when a caller explicitly requires Redis', async () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.REDIS_URL;
+
+    await assert.rejects(async () => initRedis({ env: process.env, require: true }), {
+      message: 'REDIS_URL is required when Redis is requested explicitly.',
     });
   });
 

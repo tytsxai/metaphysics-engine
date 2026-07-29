@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from 'crypto';
 import { getHealthSnapshot } from './health.service.js';
+import { collectHttpMetrics } from './httpMetrics.service.js';
 import { isShuttingDown } from './lifecycle.service.js';
 import { isRateLimitDegraded } from '../middleware/rateLimit.middleware.js';
 
@@ -22,6 +23,7 @@ export const collectMetrics = async ({
   healthSnapshotFn = getHealthSnapshot,
   shuttingDownFn = isShuttingDown,
   rateLimitDegradedFn = isRateLimitDegraded,
+  httpMetricsFn = collectHttpMetrics,
   processRef = process,
 } = {}) => {
   // Uses the same cached snapshot as the health endpoints, so a scrape interval shorter
@@ -81,6 +83,11 @@ export const collectMetrics = async ({
       ].join('\n')
     );
   }
+
+  // Everything above describes the process; this describes the work it is actually doing.
+  // Without it an instance that answers 500 to every request is indistinguishable from a
+  // healthy one at the metrics layer — see httpMetrics.service.js.
+  blocks.push(httpMetricsFn());
 
   return `${blocks.join('\n')}\n`;
 };

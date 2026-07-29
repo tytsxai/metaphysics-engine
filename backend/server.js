@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/node';
 // Import configurations
 // Health Check imports
 import { getHealthSnapshot } from './services/health.service.js';
+import { createHttpMetricsMiddleware } from './services/httpMetrics.service.js';
 import { createMetricsHandler } from './services/metrics.service.js';
 import { beginShutdown, isShuttingDown, resolveDrainMs } from './services/lifecycle.service.js';
 
@@ -100,28 +101,38 @@ if (trustProxy) {
   app.set('trust proxy', trustProxy);
 }
 
+// Orchestrator and load-balancer probes hit these every few seconds. Logging them
+// produces thousands of lines a day that say nothing, and drowns real traffic.
+// /metrics belongs here too: a scraper polls it as often as the probes, and its lines say
+// nothing that the metrics themselves do not already report.
+//
+// The request metrics skip the same set, for the same underlying reason: in a quiet hour
+// the probes are most of the traffic, and counting them would pull the latency histogram
+// toward "trivially fast" and dilute the error rate with requests no caller made.
+const HEALTH_PROBE_PATHS = new Set(['/live', '/health', '/metrics', '/api/health', '/api/ready']);
+const isProbeRequest = (req) => HEALTH_PROBE_PATHS.has((req.url || '').split('?')[0]);
+
 // Apply middleware
 app.use(helmetMiddleware);
 app.use(createCorsMiddleware(allowedOrigins));
 app.use(compression());
 // Request ID middleware (ensure every response has a request id)
 app.use(requestIdMiddleware);
+// Ahead of the body parser on purpose, so a request rejected by express.json (malformed
+// body, or one over JSON_BODY_LIMIT) is still counted. Those are 4xx a client can trigger
+// in bulk, and they are exactly the kind of thing worth seeing a rate of.
+app.use(createHttpMetricsMiddleware({ ignore: isProbeRequest }));
 app.use(express.json({ limit: JSON_BODY_LIMIT }));
 app.use(validationMiddleware);
 
 // HTTP Request Logger
 import pinoHttp from 'pino-http';
-// Orchestrator and load-balancer probes hit these every few seconds. Logging them
-// produces thousands of lines a day that say nothing, and drowns real traffic.
-// /metrics belongs here too: a scraper polls it as often as the probes, and its lines say
-// nothing that the metrics themselves do not already report.
-const HEALTH_PROBE_PATHS = new Set(['/live', '/health', '/metrics', '/api/health', '/api/ready']);
 
 app.use(
   pinoHttp({
     logger,
     autoLogging: {
-      ignore: (req) => HEALTH_PROBE_PATHS.has((req.url || '').split('?')[0]),
+      ignore: isProbeRequest,
     },
     // Define a custom success message
     customSuccessMessage: function (req, res) {
@@ -446,8 +457,14 @@ const validateProductionConfig = ({ env = process.env } = {}) => {
     errors.push('DOCS_PASSWORD must be configured in production; /api-docs is unusable without it');
   }
   if (!env.REDIS_URL) {
+    // Said once, at boot, because it is a property of the configuration rather than an
+    // incident. The rate-limit half matters for multi-instance deployments and is the
+    // only consequence here that is not purely a performance one, so it is stated
+    // explicitly: the limiter no longer reports it as a degradation at runtime.
     warnings.push(
-      'REDIS_URL is not configured. Each instance keeps its own in-memory calculation cache; results stay correct, hit rate drops.'
+      'REDIS_URL is not configured. Each instance keeps its own in-memory calculation cache ' +
+        '(results stay correct, hit rate drops) and enforces the rate limit per instance, ' +
+        'so an N-instance deployment allows N times RATE_LIMIT_MAX.'
     );
   }
   if (!env.METRICS_TOKEN) {

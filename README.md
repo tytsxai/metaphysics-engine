@@ -23,7 +23,7 @@ English summary: **Metaphysics Engine is a private divination calculation engine
 
 | 维度         | 说明                                                                                     |
 | ------------ | ---------------------------------------------------------------------------------------- |
-| 项目类型     | 玄学 / 占星 / 命理**算法能力层**（私有），以自部署 HTTP API + 程序化 CLI 交付                |
+| 项目类型     | 玄学 / 占星 / 命理**算法能力层**（私有），以自部署 HTTP API + 程序化 CLI 交付            |
 | 解决问题     | 把命理算法里那些「写错也不会报错」的语义边界做成可测试、有契约、可被程序调用的能力       |
 | 适合谁       | 要给产品接命理计算的后端开发者，以及要给 AI Agent 接一个真实排盘工具的团队               |
 | 消费方式     | 直接调 HTTP API；用 `./bazi calc` / `./bazi cast`；或作为 agent tool 接入                |
@@ -389,4 +389,3 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 ## License
 
 MIT License. See [LICENSE](LICENSE).
-

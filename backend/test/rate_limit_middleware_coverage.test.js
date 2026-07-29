@@ -39,6 +39,12 @@ describe('Rate limit middleware coverage', () => {
 
     const warnLines = [];
     const prevWarn = console.warn;
+    // This case is "Redis was configured and then failed", which is what the injected
+    // initRedisClient throwing models. The fallback warning is now scoped to exactly that:
+    // a deployment with no REDIS_URL is running single-instance by choice and no longer
+    // reports itself as degraded, so the URL has to be present for the warning to fire.
+    const prevRedisUrl = process.env.REDIS_URL;
+    process.env.REDIS_URL = 'redis://127.0.0.1:6379';
     console.warn = (...args) => warnLines.push(args.map(String).join(' '));
     try {
       const mwInitFail = createRateLimitMiddleware({
@@ -89,6 +95,8 @@ describe('Rate limit middleware coverage', () => {
       assert.ok(warnLines.some((l) => l.includes('Redis error')));
     } finally {
       console.warn = prevWarn;
+      if (prevRedisUrl === undefined) delete process.env.REDIS_URL;
+      else process.env.REDIS_URL = prevRedisUrl;
     }
   });
 

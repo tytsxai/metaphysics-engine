@@ -22,8 +22,18 @@ export const initRedis = async ({
 } = {}) => {
   const redisUrl = typeof url === 'string' ? url : getRedisUrl(env);
   if (!redisUrl) {
-    if (requireRedis || (env.NODE_ENV === 'production' && !env.CI)) {
-      throw new Error('REDIS_URL is required for production sessions.');
+    // Only an explicit `require: true` is fatal. This used to also throw whenever
+    // NODE_ENV was production — a leftover from the session layer, back when Redis held
+    // correctness-critical state. Redis is now a pure cache and documented as optional in
+    // production, but the throw outlived the sessions: `checkRedis` calls initRedis with
+    // no arguments, so on a production instance without REDIS_URL the rejection
+    // propagated out of getHealthSnapshot and /health, /api/ready and /metrics all
+    // answered 500. A load balancer reading /api/ready never puts such an instance into
+    // service, so the "Redis optional" deployment could not serve a single request.
+    // It went unnoticed because the guard exempted CI and docker-compose.prod.yml pins
+    // REDIS_URL, so neither the test suite nor the reference stack ever took this path.
+    if (requireRedis) {
+      throw new Error('REDIS_URL is required when Redis is requested explicitly.');
     }
     return null;
   }

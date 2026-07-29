@@ -117,3 +117,141 @@ jobs:
           ./bazi stack up --json
           npm run test:engine
           ./bazi stack down --json
+
+  # Everything above runs the engine from a source checkout, in development or test mode.
+  # Production is a different program: NODE_ENV=production turns on code paths nothing else
+  # reaches, and the artifact operators actually deploy is an image, not this checkout.
+  #
+  # Two shipped defects lived in exactly that blind spot. backend/Dockerfile still copied a
+  # prisma/ directory and ran a prisma:generate script that were deleted with the storage
+  # layer, so the image could not build at all. And config/redis.js threw on a production
+  # boot without REDIS_URL — a session-layer leftover — which made /health, /api/ready and
+  # /metrics answer 500, so a load balancer would never route to the instance. Both were
+  # invisible to a green test suite.
+  #
+  # This job closes that gap by exercising the real artifact in the real mode. It runs
+  # WITHOUT Redis on purpose: that is the configuration the documentation calls optional and
+  # the one that was broken. Note the container does not inherit the runner's CI=true, so it
+  # sees production exactly as a deployed instance does.
+  image:
+    name: Image Build & Production Smoke
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Build context is the repository root, matching docker-compose.prod.yml.
+      - name: Build the production image
+        run: docker build -f backend/Dockerfile -t bazi-master:ci .
+
+      - name: Start the container in production mode, without Redis
+        run: |
+          docker run -d --name bazi-ci -p 4000:4000 \
+            -e NODE_ENV=production \
+            -e PORT=4000 \
+            -e BIND_HOST=0.0.0.0 \
+            -e DOCS_PASSWORD=ci-docs-password \
+            -e METRICS_TOKEN=ci-metrics-token \
+            -e BACKEND_BASE_URL=https://api.example.com \
+            -e CORS_ALLOWED_ORIGINS=https://app.example.com \
+            -e TRUST_PROXY=1 \
+            -e SHUTDOWN_DRAIN_MS=1000 \
+            bazi-master:ci
+
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4000/live >/dev/null 2>&1; then
+              echo "engine is up"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "engine never became live" >&2
+          docker logs bazi-ci >&2
+          exit 1
+
+      - name: Probe endpoints answer as documented
+        run: |
+          set -euo pipefail
+
+          expect() {
+            local label=$1 expected=$2
+            shift 2
+            local actual
+            actual=$(curl -s -o /dev/null -w '%{http_code}' "$@")
+            if [ "$actual" != "$expected" ]; then
+              echo "FAIL ${label}: expected ${expected}, got ${actual}" >&2
+              return 1
+            fi
+            echo "ok   ${label}: ${actual}"
+          }
+
+          # The three that returned 500 on a Redis-less production boot.
+          expect "/live"        200 http://127.0.0.1:4000/live
+          expect "/health"      200 http://127.0.0.1:4000/health
+          expect "/api/ready"   200 http://127.0.0.1:4000/api/ready
+
+          # An unconfigured optional cache is "disabled", which is healthy — not a
+          # dependency failure that should hold the instance out of service.
+          curl -fsS http://127.0.0.1:4000/health \
+            | grep -q '"redis":{"ok":true,"status":"disabled"}'
+          echo "ok   /health reports redis as disabled-but-healthy"
+
+          # Security defaults: both of these are unauthenticated-by-accident risks.
+          expect "/metrics (no token)"   401 http://127.0.0.1:4000/metrics
+          expect "/metrics (token)"      200 -H 'Authorization: Bearer ci-metrics-token' http://127.0.0.1:4000/metrics
+          expect "/api-docs.json (anon)" 401 http://127.0.0.1:4000/api-docs.json
+
+          # The engine's actual job, through the real image.
+          curl -fsS -X POST http://127.0.0.1:4000/api/bazi/calculate \
+            -H 'Content-Type: application/json' \
+            -d '{"birthYear":1993,"birthMonth":6,"birthDay":18,"birthHour":12,"gender":"male"}' \
+            | grep -q '"pillars"'
+          echo "ok   /api/bazi/calculate returns a chart"
+
+          # The request metrics are what make a "process is up but every request fails"
+          # outage visible at all, and they are only worth anything if the middleware is
+          # actually mounted in the shipped image — a unit test cannot tell you that.
+          # Asserted right after the calculation above, so the 2xx counter has something
+          # real to have counted.
+          metrics=$(curl -fsS -H 'Authorization: Bearer ci-metrics-token' http://127.0.0.1:4000/metrics)
+
+          echo "$metrics" | grep -q '^# TYPE bazi_http_requests_total counter'
+          echo "$metrics" | grep -q '^# TYPE bazi_http_request_duration_seconds histogram'
+          echo "ok   /metrics exposes the request families"
+
+          # Every status class present even at zero: an absent series makes an error-rate
+          # alert unable to fire until after the first error.
+          for cls in 2xx 3xx 4xx 5xx; do
+            echo "$metrics" | grep -q "^bazi_http_requests_total{status_class=\"${cls}\"} " \
+              || { echo "FAIL: status_class=${cls} missing" >&2; exit 1; }
+          done
+          echo "ok   /metrics emits all four status classes"
+
+          served=$(echo "$metrics" | sed -n 's/^bazi_http_requests_total{status_class="2xx"} //p')
+          [ "${served:-0}" -ge 1 ] \
+            || { echo "FAIL: the chart request above was not counted (2xx=${served:-unset})" >&2; exit 1; }
+          echo "ok   /metrics counted the chart request (2xx=${served})"
+
+          # Probes must stay out of the counters, or in a quiet hour they become most of
+          # the traffic and dilute both the error rate and the latency histogram. /live was
+          # polled repeatedly by the readiness loop above, so this is a real check.
+          probes=$(echo "$metrics" | sed -n 's/^bazi_http_request_duration_seconds_count //p')
+          [ "${probes:-0}" -le 3 ] \
+            || { echo "FAIL: probe traffic is being counted (count=${probes})" >&2; exit 1; }
+          echo "ok   /metrics excludes probe traffic (count=${probes})"
+
+      # scripts/start.mjs is PID 1 and exists solely to forward SIGTERM. If that forwarding
+      # regresses, the container is SIGKILLed at the end of the grace period and in-flight
+      # requests are cut — visible only as a nonzero exit code, which is what this asserts.
+      - name: Graceful shutdown leaves a clean exit code
+        run: |
+          set -euo pipefail
+          docker stop -t 30 bazi-ci >/dev/null
+          code=$(docker inspect -f '{{.State.ExitCode}}' bazi-ci)
+          echo "container exit code: ${code}"
+          [ "$code" = "0" ]
+
+      - name: Container logs
+        if: always()
+        run: docker logs bazi-ci || true
