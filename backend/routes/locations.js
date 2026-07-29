@@ -28,8 +28,14 @@ router.get('/', (req, res) => {
     return res.json(KNOWN_LOCATIONS);
   }
 
+  // 中文名也要能搜到：城市表以中文键为主要入口（`birthLocation: "北京"` 是最常见的调用形态），
+  // 只按英文名过滤会让补全列不出用户实际会输入的那个词。
   const lowerSearch = search.toLowerCase();
-  res.json(KNOWN_LOCATIONS.filter((item) => (item.name || '').toLowerCase().includes(lowerSearch)));
+  res.json(
+    KNOWN_LOCATIONS.filter((item) =>
+      [item.name, item.cn].some((label) => (label || '').toLowerCase().includes(lowerSearch))
+    )
+  );
 });
 
 export default router;

@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 先读一下能力清单 / Machine-readable capability list
+    url: https://github.com/tytsxai/bazi-master/blob/main/README.md#快速开始--quick-start
+    about: '`./bazi help --json` 是命令清单的唯一真源；接口契约在 docs/openapi.json'
+  - name: 算法语义边界 / Known algorithmic boundaries
+    url: https://github.com/tytsxai/bazi-master/blob/main/.claude/skills/bazi-cli/SKILL.md
+    about: 真太阳时、晚子时、闰月、节气交接、拆补定局 —— 提口径问题前先扫一眼这里
+  - name: 安全问题 / Security issues
+    url: https://github.com/tytsxai/bazi-master/blob/main/SECURITY.md
+    about: 安全漏洞请私下报告，不要开公开 issue
+  - name: 参与共建 / Contributing guide
+    url: https://github.com/tytsxai/bazi-master/blob/main/CONTRIBUTING.md
+    about: 项目边界、加新能力要动哪几处、PR 检查清单

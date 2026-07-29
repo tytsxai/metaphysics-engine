@@ -60,15 +60,20 @@ docker compose up -d redis   # docker-compose.yml 里只有这一个服务
 ## 测试
 
 ```bash
-./bazi test              # 全部目标：cli + lint + backend
+./bazi test              # 全部目标：cli + lint + backend + engine
 ./bazi test backend      # 只跑后端
 ./bazi test --fail-on-skip --json   # CI 用：有目标被跳过就退 3
 
 npm -C backend test      # 后端 Node.js test runner
 npm run test:cli         # CLI 自身的契约测试
+npm run test:engine      # 能力契约验证（要引擎在跑）
 ```
 
-测试不需要任何外部服务。`./bazi test` 刻意**不**把 `.env` 注入测试进程 ——
+前三个目标不需要任何外部服务。`engine` 是唯一的例外：它拿真实引擎验证导出的工具 schema 里
+声明的可复现性确实成立（声明 `deterministic` 的命令连调两次必须一字不差），引擎没起时记
+`skipped` 而不是 `failed`。
+
+`./bazi test` 刻意**不**把 `.env` 注入测试进程 ——
 测试看到的环境应该尽量接近 CI 里那个干净的环境，否则「本机能过、CI 过不了」很难查。
 
 > `bazi test` 的目标未就绪时会记 `skipped` 并**照样返回 0**。永远读 `summary.skipped`，
@@ -140,7 +145,14 @@ CLI 刻意拒绝接管也拒绝 kill，因为按端口杀进程会误伤别的�
 
 ## 贡献
 
-- 遵循现有代码风格与目录划分
-- 变更需附带测试或说明
-- 改 CLI 本身时先读 [.claude/skills/bazi-cli/SKILL.md](../.claude/skills/bazi-cli/SKILL.md)
-  的「要改 CLI 本身的时候」那一节 —— 那里列的不是风格建议，是契约测试会当场拦下来的硬约束
+完整指南见 [CONTRIBUTING.md](../CONTRIBUTING.md)：项目边界、加一门新术数要动哪九处、
+本地质量门槛、提交规范、PR 检查清单，以及哪些改动因为边界原因不会被接受。
+
+几条最容易踩的：
+
+- 改了 `backend/services/apiSchema.service.js` 必须重新生成并提交 `docs/openapi.json`
+- 改算法要补测试，且测试样例得有典籍或流派依据
+- 涉及流派选择的地方就地注明，并同步进
+  [.claude/skills/bazi-cli/SKILL.md](../.claude/skills/bazi-cli/SKILL.md)
+- 改 CLI 本身时先读 SKILL.md 的「要改 CLI 本身的时候」那一节 —— 那里列的不是风格建议，
+  是契约测试会当场拦下来的硬约束

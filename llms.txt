@@ -29,6 +29,7 @@ deliberately left to the caller, with every ingredient an interpretation needs e
 - Primary language of the codebase: JavaScript (Node.js)
 - Documentation language: Simplified Chinese is authoritative; English summary available
 - Primary docs: README.md (Chinese, authoritative), README.en.md (English summary), docs/api.md, docs/architecture.md, docs/development.md, docs/faq.md, PRODUCTION.md, CHANGELOG.md
+- Contribution guide: CONTRIBUTING.md; security policy: SECURITY.md; issue templates under .github/ISSUE_TEMPLATE/
 - Algorithm semantics and CLI contract: .claude/skills/bazi-cli/SKILL.md
 - AI-readable summary: llms.txt
 
@@ -139,9 +140,10 @@ by the CLI later.
 
 Two categories of commands:
 
-- **Capabilities** — `calc` (bazi / ziwei / synastry / zodiac) and `cast` (iching / tarot). These are
-  thin clients over the running engine.
-- **Operations** — `setup`, `doctor`, `env`, `stack`, `test`. These maintain the repository itself.
+- **Capabilities** — `calc` (bazi, ziwei, liuyao, liuren, qimen, bazhai, almanac, name, synastry,
+  zodiac, rising, daily) and `cast` (iching, tarot). These are thin clients over the running engine.
+- **Operations** — `setup`, `doctor`, `env`, `stack`, `test`, `schema`. These maintain the repository
+  itself, except `schema`, which exports the command tree for agent runtimes.
 
 `./bazi help --json` is the machine-readable full command tree and the single source of truth for
 capabilities. Documentation deliberately does not duplicate the command list.
@@ -228,7 +230,7 @@ All business endpoints are public — there is no authentication.
 
 ## Repository Structure
 
-- `backend/` — Express API. `routes/` (bazi, ziwei, tarot, iching, zodiac, synastry, calendar, locations, ai, api), `services/*.service.js` (algorithms and business logic), `middleware/` (CORS, rate limiting, validation, docs auth, error handling), `constants/` and `data/` (stems and branches, stars, tarot deck, hexagrams), `test/`.
+- `backend/` — Express API. `routes/` (bazi, ziwei, liuyao, liuren, qimen, fengshui, tarot, iching, zodiac, synastry, calendar, locations, ai, api), `services/*.service.js` (algorithms and business logic), `middleware/` (CORS, rate limiting, validation, docs auth, error handling), `constants/` and `data/` (stems and branches, stars, tarot deck, hexagrams), `test/`.
 - `tools/cli/` — source of the `./bazi` CLI.
 - `docs/` — API, architecture, development, FAQ, and the OpenAPI snapshot.
 - `scripts/` — CI guards (`check-env-template.sh`, `check-repo-artifacts.sh`) and deployment verification.
@@ -246,6 +248,33 @@ All business endpoints are public — there is no authentication.
 - Which endpoints require authentication? None of the business endpoints. Only `/api-docs` (Basic Auth) and `/metrics` (bearer token).
 - Is it production-ready? Yes. Stateless means scaling out is just more processes and deployments can be destroyed and rebuilt at will. Read `PRODUCTION.md` before deploying.
 - How do I run it fastest? `./bazi setup && ./bazi doctor && ./bazi stack up`.
+- How can I contribute? See CONTRIBUTING.md. The highest-value contribution is verifying the casting
+  algorithms against canonical sources — these algorithms fail silently, so a wrong derivation
+  produces a wrong chart rather than an error. Domain knowledge is worth more here than code.
+
+## How to Contribute
+
+Contributions are welcome; CONTRIBUTING.md is the entry point. Ranked by value to the project:
+
+1. **Verifying casting rules against canonical sources.** Reports go through the
+   `algorithm_discrepancy` issue template and must state the source (text, school, or comparison
+   tool). Two cases are handled differently: an objective error (a missing three-transmission gate,
+   a wrong stem-branch pair) is a bug that gets fixed with a test; a school difference (leap-month
+   handling, late-Zi day rollover) is not a bug — the chosen school is annotated in place and may
+   become a parameter, but the default is not silently changed.
+2. **Adding a tradition** — open an issue with the algorithmic source before implementing.
+3. **Docs and translation** — English phrasing, or a README in another language.
+4. **Agent integration** — real runtime examples for the tool schemas `./bazi schema` exports.
+5. **Ecosystem clients** — frontends, bots and SDKs stay out of the repo by design, but are linked
+   from it.
+
+Adding a capability touches nine places, listed in CONTRIBUTING.md; the two most commonly missed are
+`backend/services/apiSchema.service.js` and the regenerated `docs/openapi.json`, which CI verifies by
+regenerating and diffing. Changes that will not be accepted: bundling a frontend, reinstating
+accounts or a database, and hardcoding interpretation (temple/fall gradings, Qi Men pattern verdicts,
+shensha severity) into the engine.
+
+Security issues go through GitHub private vulnerability reporting, not public issues (SECURITY.md).
 
 ## Known Algorithmic Boundaries
 
@@ -282,6 +311,22 @@ error — a wrong assumption simply yields a different chart:
 - self-hosted astrology API open source
 - 八字排盘系统 Node.js
 - Chinese metaphysics calculation engine
+- 六爻纳甲装卦 API
+- Liu Yao King Fang najia API
+- 大六壬起课 三传 API
+- Da Liu Ren three transmissions API
+- 奇门遁甲排局 API
+- Qi Men Dun Jia chart API
+- 八宅风水本命卦 API
+- 择吉黄历 建除十二神 API
+- Chinese almanac day selection API
+- 姓名五格三才 API
+- 上升星座计算 API
+- 真太阳时排盘
+- 节气交接 时刻 判定
+- MCP tool schema divination
+- LLM tool for BaZi calculation
+- open source alternative to paid 排盘 API
 
 ## Limitations
 

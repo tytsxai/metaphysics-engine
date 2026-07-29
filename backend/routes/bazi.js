@@ -6,7 +6,11 @@ import { validateBaziInput } from '../utils/validation.js';
 import { generateAIContent, resolveAiProvider, buildBaziPrompt } from '../services/ai.service.js';
 import { createAiGuard, resolveClientKey } from '../lib/concurrency.js';
 import { buildBirthTimeMeta } from '../utils/timezone.js';
-import { resolveLocationCoordinates, computeTrueSolarTime } from '../services/solarTime.service.js';
+import {
+  resolveLocationCoordinates,
+  describeLocationResolution,
+  computeTrueSolarTime,
+} from '../services/solarTime.service.js';
 
 const router = express.Router();
 const aiGuard = createAiGuard();
@@ -46,13 +50,25 @@ const buildTimeMetaForPayload = (payload) => {
           name:
             location?.name ||
             (typeof payload?.birthLocation === 'string' ? payload.birthLocation.trim() : null),
+          cn: location?.cn ?? null,
           latitude: location.latitude,
           longitude: location.longitude,
         },
       }
     : null;
 
-  return { ...meta, trueSolarTime };
+  const locationResolution = describeLocationResolution(payload);
+
+  // 认不出出生地会静默改变排盘口径（退回钟表时间），调用方不一定看响应里的诊断字段。
+  // 记一条 warn，让「这个城市我们其实不认识」在运维侧也能被发现并补进表里。
+  if (locationResolution.status === 'unresolved') {
+    logger.warn(
+      { birthLocation: locationResolution.input },
+      'birthLocation could not be resolved to a longitude; true solar time correction skipped'
+    );
+  }
+
+  return { ...meta, trueSolarTime, locationResolution };
 };
 
 router.post('/calculate', async (req, res) => {

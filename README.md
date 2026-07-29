@@ -1,6 +1,12 @@
 # BaZi Master · 八字与多模态玄学计算引擎 / Open-Source Divination Calculation API
 
-[![Release](https://img.shields.io/github/v/release/tytsxai/bazi-master)](https://github.com/tytsxai/bazi-master/releases) · [English README](README.en.md) · [llms.txt](llms.txt) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/tytsxai/bazi-master/issues)
+[![CI](https://github.com/tytsxai/bazi-master/actions/workflows/ci.yml/badge.svg)](https://github.com/tytsxai/bazi-master/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/tytsxai/bazi-master)](https://github.com/tytsxai/bazi-master/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+[English README](README.en.md) · [llms.txt](llms.txt) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/tytsxai/bazi-master/issues)
 
 BaZi Master 是一个开源的命理计算引擎，把中国传统术数的排盘能力——八字（BaZi）、紫微斗数（Zi Wei Dou Shu）、六爻纳甲（Liu Yao）、大六壬（Da Liu Ren）、奇门遁甲（Qi Men Dun Jia）、八宅风水（Ba Zhai）、择吉（almanac）、姓名五格——连同塔罗、周易起卦、星座与上升星座、合盘分析和 AI 解读，收敛成一套文档化的 HTTP API 和一个面向 Agent 的程序化 CLI。
 
@@ -10,7 +16,7 @@ English summary: **BaZi Master is an open-source divination calculation engine**
 
 > 关键词 / Keywords: 八字排盘 API, BaZi chart API, 紫微斗数排盘, Zi Wei Dou Shu chart, 六爻纳甲 API, Liu Yao hexagram API, 大六壬起课, Da Liu Ren API, 奇门遁甲排盘, Qi Men Dun Jia API, 八宅风水, feng shui API, 择吉黄历 API, Chinese almanac API, 姓名五格, 塔罗抽牌 API, Tarot draw API, 周易起卦 API, I Ching divination API, 星座配对, astrology compatibility, 合盘分析 Synastry, stateless calculation engine, agent tools, AI divination backend.
 
-**目录**：[项目定位](#项目定位--project-snapshot) · [核心能力](#核心能力--core-capabilities) · [快速开始](#快速开始--quick-start) · [调用示例](#调用示例--usage-examples) · [适用场景](#适用场景--use-cases) · [技术栈](#技术栈--tech-stack) · [环境变量](#环境变量--configuration) · [FAQ](#faq--常见问题) · [项目结构](#项目结构--repository-structure) · [测试](#测试--testing) · [生产部署](#部署与生产注意事项--production-notes) · [限制](#限制与免责声明--limitations)
+**目录**：[项目定位](#项目定位--project-snapshot) · [核心能力](#核心能力--core-capabilities) · [快速开始](#快速开始--quick-start) · [调用示例](#调用示例--usage-examples) · [接口速查](#接口速查--api-endpoints) · [适用场景](#适用场景--use-cases) · [技术栈](#技术栈--tech-stack) · [环境变量](#环境变量--configuration) · [FAQ](#faq--常见问题) · [项目结构](#项目结构--repository-structure) · [测试](#测试--testing) · [生产部署](#部署与生产注意事项--production-notes) · [参与共建](#参与共建--contributing) · [限制](#限制与免责声明--limitations)
 
 ## 项目定位 / Project Snapshot
 
@@ -177,6 +183,34 @@ curl -X POST http://127.0.0.1:4000/api/tarot/draw \
 后者决定这条工具的结果能不能拿去做缓存或回归基准。要走 HTTP 而不是 CLI，
 用 `docs/openapi.json`；所有业务接口都无需鉴权。
 
+## 接口速查 / API Endpoints
+
+所有业务接口都是**公开的，无需鉴权**——项目没有账号系统。唯一带鉴权的是运维面。
+完整参数与响应见 [docs/api.md](docs/api.md)，机器可读契约见 [docs/openapi.json](docs/openapi.json)。
+
+| 能力                          | HTTP 接口                                                                                       | 对应 CLI               |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------- |
+| 八字排盘 BaZi                 | `POST /api/bazi/calculate`                                                                      | `./bazi calc bazi`     |
+| 八字 AI 解读                  | `POST /api/bazi/ai-interpret` · `POST /api/bazi/full-analysis`                                  | —                      |
+| 紫微斗数 Zi Wei               | `POST /api/ziwei/calculate`                                                                     | `./bazi calc ziwei`    |
+| 六爻纳甲 Liu Yao              | `POST /api/liuyao/chart`                                                                        | `./bazi calc liuyao`   |
+| 大六壬 Da Liu Ren             | `POST /api/liuren/chart`                                                                        | `./bazi calc liuren`   |
+| 奇门遁甲 Qi Men               | `POST /api/qimen/chart`                                                                         | `./bazi calc qimen`    |
+| 八宅风水 Ba Zhai              | `POST /api/fengshui/bazhai`                                                                     | `./bazi calc bazhai`   |
+| 择吉黄历 Almanac              | `GET /api/fengshui/almanac`                                                                     | `./bazi calc almanac`  |
+| 姓名五格 Name grids           | `POST /api/fengshui/name`                                                                       | `./bazi calc name`     |
+| 合盘 Synastry                 | `POST /api/synastry/analyze`                                                                    | `./bazi calc synastry` |
+| 塔罗 Tarot                    | `POST /api/tarot/draw` · `GET /api/tarot/cards` · `POST /api/tarot/ai-interpret`                | `./bazi cast tarot`    |
+| 周易起卦 I Ching              | `POST /api/iching/divine` · `GET /api/iching/hexagrams` · `POST /api/iching/ai-interpret`       | `./bazi cast iching`   |
+| 星座 Zodiac                   | `GET /api/zodiac/{sign}` · `GET /api/zodiac/{sign}/horoscope` · `GET /api/zodiac/compatibility` | `./bazi calc zodiac`   |
+| 上升星座 Ascendant            | `POST /api/zodiac/rising`                                                                       | `./bazi calc rising`   |
+| 流日 Daily                    | `GET /api/calendar/daily`                                                                       | `./bazi calc daily`    |
+| 真太阳时地点表                | `GET /api/locations`                                                                            | —                      |
+| AI Provider 状态              | `GET /api/ai/providers`                                                                         | —                      |
+| 健康 / 就绪 / 缓存            | `GET /live` · `GET /health` · `GET /api/ready` · `GET /api/system/cache-status`                 | `./bazi stack status`  |
+| 接口文档（生产带 Basic Auth） | `GET /api-docs` · `GET /api-docs.json`                                                          | —                      |
+| 指标（Bearer token）          | `GET /metrics`                                                                                  | —                      |
+
 ## 适用场景 / Use Cases
 
 - 给已有产品（Web、小程序、App）接一套命理/占星计算后端，界面完全自己实现。
@@ -296,6 +330,29 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 - 优雅停机带排水窗口：`SHUTDOWN_DRAIN_MS` 必须按你的负载均衡探测节奏设置，并小于编排层的 stop grace period。
 - 发布前请阅读 [PRODUCTION.md](PRODUCTION.md)。
 
+## 参与共建 / Contributing
+
+这个项目最难的部分不是写代码，是**「写错了也不会报错」**：三传取法、安星链条、拆补定局、
+节气交接的时刻精度——错了不抛异常，只会安静地给出一张错盘。所以**最有价值的贡献是懂某一门
+术数的人来核对排盘结果**，不需要写一行代码。
+
+几个好的切入点：
+
+| 方向         | 说明                                                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------------------- |
+| 排盘口径校对 | 核对某一门术数的输出，用[排盘口径模板](.github/ISSUE_TEMPLATE/algorithm_discrepancy.yml)报告，带上典籍或流派依据 |
+| 补新术数     | 梅花易数、七政四余、小六壬等；先开 issue 说明取法依据                                                            |
+| 文档与翻译   | `README.en.md` / `llms.txt` 的英文表述，或补日语、繁体中文 README                                                |
+| Agent 接入   | `./bazi schema` 已能导出 anthropic / openai / mcp 三种 tool schema，欢迎补真实 Runtime 的接入示例                |
+| 生态客户端   | 前端、Bot、SDK 不进主仓，但欢迎开 issue 链接过来，我们放进生态列表                                               |
+
+报告口径问题时请分清两种情况——处理方式完全不同：**算错了**（三传漏宗门、纳甲干支排错）是 bug，
+直接修并补测试；**流派不同**（闰月归本月 vs 折半、晚子时换不换日）不是 bug，就地注明口径、
+必要时做成参数，但不改默认。
+
+上手三行命令、加一个新能力要动哪几处、PR 检查清单、以及哪些改动因为边界原因不会被接受，
+全部写在 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请走 [SECURITY.md](SECURITY.md)，不要开公开 issue。
+
 ## 限制与免责声明 / Limitations
 
 - 本项目是参考实现，不提供托管服务、不保证占卜或命理准确性。
@@ -311,13 +368,11 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 - [docs/development.md](docs/development.md): 本地开发指南
 - [docs/faq.md](docs/faq.md): 常见问题
 - [.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md): 算法语义边界与 CLI 用法
+- [CONTRIBUTING.md](CONTRIBUTING.md): 参与共建指南
+- [SECURITY.md](SECURITY.md): 安全策略与部署者安全基线
 - [PRODUCTION.md](PRODUCTION.md): 生产部署与运维
 - [CHANGELOG.md](CHANGELOG.md): 版本变更记录
 - [llms.txt](llms.txt): structured summary for AI search engines and coding agents
-
-## GitHub Topics 建议
-
-`bazi`, `bazi-chart`, `bazi-api`, `ziwei`, `ziwei-doushu`, `tarot`, `iching`, `astrology`, `synastry`, `divination`, `fortune-telling`, `metaphysics`, `calculation-engine`, `rest-api`, `agent-tools`, `stateless`, `express`, `nodejs`, `openapi`, `self-hosted`
 
 ## License
 

@@ -1,6 +1,12 @@
 # BaZi Master — Open-Source Divination Calculation API
 
-[![Release](https://img.shields.io/github/v/release/tytsxai/bazi-master)](https://github.com/tytsxai/bazi-master/releases) · [简体中文 README](README.md) · [llms.txt](llms.txt) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/tytsxai/bazi-master/issues)
+[![CI](https://github.com/tytsxai/bazi-master/actions/workflows/ci.yml/badge.svg)](https://github.com/tytsxai/bazi-master/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/tytsxai/bazi-master)](https://github.com/tytsxai/bazi-master/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+[简体中文 README](README.md) · [llms.txt](llms.txt) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/tytsxai/bazi-master/issues)
 
 **BaZi Master is an open-source, self-hostable calculation engine for Chinese metaphysics and
 astrology**, exposed as a documented HTTP API and an agent-callable CLI. It covers the traditional
@@ -153,6 +159,45 @@ The same capabilities through the CLI:
 Full endpoint list: [docs/api.md](docs/api.md). Swagger UI at `/api-docs`, OpenAPI JSON at
 `/api-docs.json`. Every business endpoint is public — there is no authentication to wire up.
 
+To register the engine with an agent runtime, `./bazi schema` exports the command tree as tool
+definitions (`--format anthropic | openai | mcp`) without needing a running engine:
+
+```bash
+./bazi schema --format openai > tools.json
+```
+
+Each exported tool carries a side-effect level (`read-only` / `local-write` / `destructive`) and a
+reproducibility class — the former for permission decisions, the latter to decide whether a result
+can be cached or used as a regression baseline.
+
+## API endpoints
+
+Every business endpoint is public and unauthenticated — the project has no account system. Only the
+operations surface is protected.
+
+| Capability                    | HTTP endpoint                                                                                   | CLI                    |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------- |
+| BaZi chart                    | `POST /api/bazi/calculate`                                                                      | `./bazi calc bazi`     |
+| BaZi AI interpretation        | `POST /api/bazi/ai-interpret` · `POST /api/bazi/full-analysis`                                  | —                      |
+| Zi Wei Dou Shu                | `POST /api/ziwei/calculate`                                                                     | `./bazi calc ziwei`    |
+| Liu Yao (King Fang)           | `POST /api/liuyao/chart`                                                                        | `./bazi calc liuyao`   |
+| Da Liu Ren                    | `POST /api/liuren/chart`                                                                        | `./bazi calc liuren`   |
+| Qi Men Dun Jia                | `POST /api/qimen/chart`                                                                         | `./bazi calc qimen`    |
+| Ba Zhai feng shui             | `POST /api/fengshui/bazhai`                                                                     | `./bazi calc bazhai`   |
+| Almanac / day selection       | `GET /api/fengshui/almanac`                                                                     | `./bazi calc almanac`  |
+| Name grids                    | `POST /api/fengshui/name`                                                                       | `./bazi calc name`     |
+| Synastry                      | `POST /api/synastry/analyze`                                                                    | `./bazi calc synastry` |
+| Tarot                         | `POST /api/tarot/draw` · `GET /api/tarot/cards` · `POST /api/tarot/ai-interpret`                | `./bazi cast tarot`    |
+| I Ching                       | `POST /api/iching/divine` · `GET /api/iching/hexagrams` · `POST /api/iching/ai-interpret`       | `./bazi cast iching`   |
+| Zodiac                        | `GET /api/zodiac/{sign}` · `GET /api/zodiac/{sign}/horoscope` · `GET /api/zodiac/compatibility` | `./bazi calc zodiac`   |
+| Ascendant                     | `POST /api/zodiac/rising`                                                                       | `./bazi calc rising`   |
+| Daily pillar                  | `GET /api/calendar/daily`                                                                       | `./bazi calc daily`    |
+| True-solar-time locations     | `GET /api/locations`                                                                            | —                      |
+| AI provider status            | `GET /api/ai/providers`                                                                         | —                      |
+| Health / readiness            | `GET /live` · `GET /health` · `GET /api/ready` · `GET /api/system/cache-status`                 | `./bazi stack status`  |
+| API docs (Basic Auth in prod) | `GET /api-docs` · `GET /api-docs.json`                                                          | —                      |
+| Metrics (bearer token)        | `GET /metrics`                                                                                  | —                      |
+
 ## Configuration
 
 See [.env.example](.env.example) for development and
@@ -195,15 +240,54 @@ output twice in a row). It is recorded as `skipped` when no engine is running.
   orchestrator's stop grace period.
 - Read [PRODUCTION.md](PRODUCTION.md) before deploying.
 
+## Contributing
+
+The hard part of this project is not the code — it is that **these algorithms fail silently**. A
+wrong three-transmission derivation, a misplaced star, an off-by-one-hour solar term: none of them
+raise an error, they just return a wrong chart. So the most valuable contribution is **someone who
+knows one of these traditions verifying the output**, no code required.
+
+Good entry points:
+
+| Area                               | What it looks like                                                                                        |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Verifying a school's casting rules | File an [algorithm discrepancy](.github/ISSUE_TEMPLATE/algorithm_discrepancy.yml) with a canonical source |
+| Adding a tradition                 | Plum Blossom, Xiao Liu Ren, and others — open an issue with the source first                              |
+| Docs and translation               | English phrasing in `README.en.md` / `llms.txt`, or a README in another language                          |
+| Agent integration                  | `./bazi schema` already exports anthropic / openai / mcp shapes; real runtime examples are welcome        |
+| Ecosystem clients                  | Frontends, bots, and SDKs stay out of this repo, but link yours in an issue and we list it                |
+
+When reporting a discrepancy, please distinguish **a bug** (objectively wrong — we fix it and add a
+test) from **a school difference** (leap-month handling, late-Zi rollover — we document the chosen
+school in place and may expose a parameter, but won't silently change the default).
+
+[CONTRIBUTING.md](CONTRIBUTING.md) covers the setup, which files a new capability touches, the PR
+checklist, and which changes fall outside the project's boundary. Security issues go to
+[SECURITY.md](SECURITY.md), not to a public issue.
+
 ## Limitations
 
 - A reference implementation. No hosted service, no accuracy guarantee.
 - Output suits entertainment, cultural research, prototyping, and code study — not professional advice.
-- The algorithms make school-specific choices (late-Zi hour does not roll the day, leap months fold
-  into the base month, true solar time is computed but not applied to the chart). These are
-  documented one by one in [.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md).
+- The algorithms make school-specific choices (late-Zi hour does not roll the day pillar, leap
+  months fold into the base month, hidden-stem weights and strength thresholds, and true solar time
+  participates in charting by default whenever the birth location resolves to a longitude — pass
+  `trueSolarTime: false` to fall back to clock time). These are documented one by one in
+  [.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md) and annotated in the code.
 - AI interpretation depends on provider model quality, keys, rate limits, and prompts.
 - Reverse proxy, domains, certificates, and jurisdictional compliance are the deployer's responsibility.
+
+## Documentation
+
+- [docs/api.md](docs/api.md) — HTTP API reference
+- [docs/architecture.md](docs/architecture.md) — architecture and module boundaries
+- [docs/development.md](docs/development.md) — local development
+- [docs/faq.md](docs/faq.md) — FAQ
+- [.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md) — algorithmic semantics and the CLI contract
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution guide
+- [SECURITY.md](SECURITY.md) — security policy and deployer checklist
+- [PRODUCTION.md](PRODUCTION.md) — production deployment and operations
+- [llms.txt](llms.txt) — structured summary for AI search engines and coding agents
 
 ## License
 

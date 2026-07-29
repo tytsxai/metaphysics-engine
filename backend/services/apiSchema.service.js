@@ -140,9 +140,46 @@ export const buildOpenApiSpec = ({ baseUrl } = {}) => ({
             type: 'object',
             properties: {
               name: { type: 'string', nullable: true },
+              cn: { type: 'string', nullable: true, description: '中文名，坐标串输入时为 null' },
               latitude: { type: 'number' },
               longitude: { type: 'number' },
             },
+          },
+        },
+      },
+      LocationResolution: {
+        type: 'object',
+        description:
+          '出生地解析的诊断。`trueSolarTime` 只说校正生没生效，说不了为什么 —— 没填出生地、' +
+          '显式关掉、填了但认不出，三种情况的 trueSolarTime 都是 null，只有 unresolved ' +
+          '需要调用方改输入。要判断校正是否生效仍看 trueSolarTime，这个字段是拿来排查的。',
+        properties: {
+          status: {
+            type: 'string',
+            enum: ['resolved', 'unresolved', 'absent', 'disabled'],
+            description:
+              'resolved 解析成功并已校正；unresolved 填了但认不出，本次按钟表时间排盘；' +
+              'absent 没填 birthLocation；disabled 调用方传了 trueSolarTime: false',
+          },
+          input: { type: 'string', nullable: true, description: '原样回显的 birthLocation' },
+          matched: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              name: { type: 'string', nullable: true },
+              cn: { type: 'string', nullable: true },
+            },
+          },
+          source: {
+            type: 'string',
+            nullable: true,
+            enum: ['known', 'coordinates', null],
+            description: 'known 命中城市表；coordinates 直接解析了 "纬度,经度" 坐标串',
+          },
+          hint: {
+            type: 'string',
+            nullable: true,
+            description: 'status 非 resolved 时给出的下一步；resolved 时为 null',
           },
         },
       },
@@ -204,11 +241,17 @@ export const buildOpenApiSpec = ({ baseUrl } = {}) => ({
             type: 'object',
             description:
               '实际用于排盘的时刻。真太阳时生效时 used 与 trueSolarTime.clockTime 会不同，' +
-              '差一个时辰即差一柱。',
+              '差一个时辰即差一柱。locationResolution 说明出生地解析的结果。',
+            properties: {
+              used: { type: 'object' },
+              trueSolarTime: ref('TrueSolarTime'),
+              locationResolution: ref('LocationResolution'),
+            },
           },
           strength: { type: 'object' },
           timezoneOffsetMinutes: { type: 'integer', nullable: true },
           trueSolarTime: ref('TrueSolarTime'),
+          locationResolution: ref('LocationResolution'),
         },
       },
       AiContent: {
@@ -229,6 +272,7 @@ export const buildOpenApiSpec = ({ baseUrl } = {}) => ({
         type: 'object',
         properties: {
           name: { type: 'string', example: 'Beijing' },
+          cn: { type: 'string', nullable: true, example: '北京' },
           latitude: { type: 'number', example: 39.9042 },
           longitude: { type: 'number', example: 116.4074 },
         },

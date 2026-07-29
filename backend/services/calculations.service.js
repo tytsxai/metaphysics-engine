@@ -2,6 +2,7 @@ import { Solar } from 'lunar-javascript';
 import {
   normalizeLocationKey,
   resolveLocationCoordinates,
+  describeLocationResolution,
   computeTrueSolarTime,
   listKnownLocations,
 } from './solarTime.service.js';
@@ -9,6 +10,7 @@ import {
 export {
   normalizeLocationKey,
   resolveLocationCoordinates,
+  describeLocationResolution,
   computeTrueSolarTime,
   listKnownLocations,
 };
@@ -140,6 +142,7 @@ export const resolveChartTime = (data) => {
     hour: data.birthHour || 0,
     minute,
     trueSolarTime: null,
+    locationResolution: describeLocationResolution(data),
   };
 
   if (data.trueSolarTime === false) return base;
@@ -175,14 +178,18 @@ export const resolveChartTime = (data) => {
     day: corrected.corrected.day,
     hour: corrected.corrected.hour,
     minute: corrected.corrected.minute,
+    locationResolution: base.locationResolution,
     trueSolarTime: {
       applied: true,
       correctionMinutes: corrected.correctionMinutes,
       longitudeCorrection: corrected.longitudeCorrection,
       eotCorrection: corrected.eotCorrection,
-      clockTime: { ...base, trueSolarTime: undefined },
+      // clockTime 是「校正前的那个时刻」，只该有时刻本身：诊断字段属于 chartTime 顶层，
+      // 复制进来会变成同一份数据在响应里出现两次。
+      clockTime: { ...base, trueSolarTime: undefined, locationResolution: undefined },
       location: {
         name: location.name || null,
+        cn: location.cn ?? null,
         latitude: location.latitude,
         longitude: location.longitude,
       },
@@ -367,6 +374,11 @@ export const performCalculation = (data) => {
         minute: chartTime.minute,
       },
       trueSolarTime: chartTime.trueSolarTime,
+      /**
+       * 出生地为什么没能参与排盘 —— `trueSolarTime: null` 把「没填」「关掉了」
+       * 「填了但认不出」压成了同一个值，只有最后一种需要调用方改输入。
+       */
+      locationResolution: chartTime.locationResolution,
     },
   };
 };
