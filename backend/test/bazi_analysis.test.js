@@ -139,7 +139,10 @@ describe('藏干加权五行', () => {
     );
     [...strength.seasonalRoots, ...strength.roots.flatMap((entry) => entry.roots)].forEach(
       (root) => {
-        assert.ok(['strong', 'medium', 'weak'].includes(root.strength), `根的强弱缺失：${root.stem}`);
+        assert.ok(
+          ['strong', 'medium', 'weak'].includes(root.strength),
+          `根的强弱缺失：${root.stem}`
+        );
         assert.ok(
           strength.allyElements.includes(root.element),
           `${root.stem} 不是同党，不该算作根`
