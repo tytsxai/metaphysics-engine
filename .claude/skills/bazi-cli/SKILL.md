@@ -8,12 +8,13 @@ description: bazi-master 算法能力层的操作入口。当需要调用八字�
 这个项目是**算法能力层**，不是网页应用。它的形态是：引擎作为常驻进程跑着，对外暴露
 HTTP 接口；`./bazi` 是引擎的薄客户端，把能力包成命令给 Agent 调用。
 
-命令分两类，`bazi help --json` 里一眼能分出来：
+命令分三类，`bazi help --json` 里一眼能分出来（前两类由每条命令声明的 `kind` 区分）：
 
-| 类别     | 命令                                  | 是什么                     |
-| -------- | ------------------------------------- | -------------------------- |
-| **能力** | `calc` / `cast`                       | 这个项目对外输出的算法能力 |
-| **运维** | `setup` `doctor` `env` `stack` `test` | 维护这个仓库本身           |
+| 类别     | 命令                                  | 是什么                       |
+| -------- | ------------------------------------- | ---------------------------- |
+| **能力** | `calc` / `cast`                       | 这个项目对外输出的算法能力   |
+| **运维** | `setup` `doctor` `env` `stack` `test` | 维护这个仓库本身             |
+| **接入** | `schema` / `mcp`                      | 把上面那些能力交给上层 Agent |
 
 **能做什么以 `bazi help --json` 为准**，这里不重复命令清单——重复的清单一定会腐化。
 这份文档只讲 `--help` 讲不了的：算法侧的语义边界、顺序、坑。
@@ -104,8 +105,13 @@ CLI 的文本输出、引擎返回的断语（如流日的 `advice`）**一律�
 要按钟表时间排盘（比如复现历史结果），传 `trueSolarTime: false` 显式关掉。
 
 `applied` 为真需要**两个条件同时满足**：地名能解析出经度，且时区能解析出偏移。
-只给 `--location` 不给 `--timezone`，多半静默不校正 —— 此时得到的是钟表时间那张盘，
-两张盘可能差一柱，排查结果不符预期时先看 `chartTime.used` 到底用了几点。
+只给 `--location` 不给 `--timezone` 是最常见的落空方式（CLI 不会替你猜时区），
+此时得到的是钟表时间那张盘，两张盘可能差一柱。这种情况不再是静默的：
+`chartTime.locationResolution.status` 会是 `no-timezone` 并给出补哪个参数。
+
+时区偏移取的是**出生当时**的实际偏移，不是今天的。1990 年 5 月的 `Asia/Shanghai`
+是 UTC+9（当年中国实行夏令时），标准经线按 135° 算 —— 同一个地名在不同年份的
+校正量可以差整整一小时，这是对的，不要按今天的 UTC+8 去核对。
 
 ## 地名表只有 88 个城市，认不出就跳过校正（不报错）
 
@@ -115,10 +121,24 @@ CLI 的文本输出、引擎返回的断语（如流日的 `advice`）**一律�
 字符全替换成空格，「北京」归一化成空串，中文地名 100% 认不出，真太阳时被静默跳过。
 
 **表里没有的地名仍然不报错，只是不做校正**——比如 `--location Timbuktu`，
-`trueSolarTime` 是 `null`，其余一切正常。要区分「没填」「显式关掉」「填了但认不出」，
-看 `chartTime.locationResolution.status`（`absent` / `disabled` / `unresolved` / `resolved`）；
-只有 `unresolved` 需要改输入，它同时在服务端记一条 warn。判断校正是否生效的判据仍是
-`trueSolarTime`，新字段不改变既有契约。
+`trueSolarTime` 是 `null`，其余一切正常。
+
+`chartTime.locationResolution.status` 报的是**校正的最终下场**，不是「地名查得到吗」，
+五个取值里只有第一个意味着这张盘用了校正后的时刻：
+
+| status        | 含义                                    | 谁该动手               |
+| ------------- | --------------------------------------- | ---------------------- |
+| `applied`     | 已校正，`chartTime.used` 是校正后的时刻 | —                      |
+| `unresolved`  | 填了出生地但认不出，本次按钟表时间排盘  | 调用方：换写法或传坐标 |
+| `no-timezone` | 地名认得，但没时区偏移，标准经线算不出  | 调用方：补 timezone    |
+| `absent`      | 没填 `birthLocation`                    | —                      |
+| `disabled`    | 显式传了 `trueSolarTime: false`         | —                      |
+
+`unresolved` 与 `no-timezone` 同时在服务端记一条 warn（前者可能意味着城市表该补，
+后者是调用方一直漏参数）。`hint` 字段直接给出下一步，不用去猜。
+
+判断校正是否生效的判据仍是 `trueSolarTime`（`null` 就是没生效），这个新字段是拿来
+排查「为什么没生效」的，不改变既有契约。
 
 绕开这张表的方法是**直接传坐标**，这条路径永远可靠：
 
@@ -362,6 +382,27 @@ Agent 在调用能力命令前，可以用 `./bazi stack status --require-ready 
 
 这条命令不需要维护：新增命令后它自动带上，前提是那条命令按下面「要改 CLI 本身的时候」
 那节的硬约束把 `effect` / `kind` / `required` / `choices` / `variadic` 声明齐全。
+
+## 直接挂成 MCP server：bazi mcp
+
+要的不是一份定义而是一个能直接挂给 Agent 的 server 时，用 `./bazi mcp` ——
+stdio 传输，工具定义与 `bazi schema` 同源（共用 `core/toolSchema.mjs`，
+契约测试逐条比对，连 `inputSchema` 与 `annotations` 都不许有差异）。
+
+```json
+{ "command": "./bazi", "args": ["mcp"] }
+```
+
+- **默认只暴露 `calc` / `cast`，14 个工具，全部只读。** 运维命令要 `--scope ops|all`
+  显式放进来。
+- **每次工具调用都真的去跑一次 CLI**，不是在进程内直调。参数校验、必填检查、
+  破坏性操作的安全闸、退出码语义因此全部原样继承 —— 进程内直调等于把安全闸绕过去，
+  而工具长期挂在 Agent 上时正是最需要它的时候。
+- **退出码翻译成 `isError`**，CLI 信封里的 `hint` / `next` / `exitMeaning` 原样交给模型。
+- **stdout 归协议独占**，日志走 stderr；这条命令没有 `--json` 可言（它没有结果信封）。
+- **引擎要先起着**，和其他能力命令一样：`./bazi stack up --only api`。
+- SDK（`@modelcontextprotocol/sdk`）是动态加载的：没装只影响这一条命令，退 3 并提示
+  `npm install`，`bazi doctor` 里也单列一项 `deps:mcp-sdk`。
 
 ## --dry-run：动手之前先问它
 

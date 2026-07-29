@@ -88,8 +88,9 @@ client you build, or wire it into an AI agent as a tool.
   OpenAPI / Swagger UI, graceful shutdown with a drain window.
 - **Programmatic CLI** — `./bazi` wraps both the algorithms and repo operations; every command
   supports `--json` and a documented exit-code contract, which makes it directly agent-callable.
-  `./bazi schema` exports the command tree as tool definitions (Anthropic / OpenAI / MCP) for an
-  agent runtime to register — generated from the same tree, so there is no second list to drift.
+  `./bazi mcp` mounts it as an MCP server over stdio, and `./bazi schema` exports the command tree
+  as tool definitions (Anthropic / OpenAI / MCP) — both generated from that same tree, so there is
+  no second list to drift.
   Every exported tool carries a declared side-effect level (`read-only` / `local-write` /
   `destructive`, surfaced as MCP's `readOnlyHint` / `destructiveHint`) and a reproducibility
   class — the first is what a permission check reads, the second decides whether a result can be
@@ -159,8 +160,22 @@ The same capabilities through the CLI:
 Full endpoint list: [docs/api.md](docs/api.md). Swagger UI at `/api-docs`, OpenAPI JSON at
 `/api-docs.json`. Every business endpoint is public — there is no authentication to wire up.
 
-To register the engine with an agent runtime, `./bazi schema` exports the command tree as tool
-definitions (`--format anthropic | openai | mcp`) without needing a running engine:
+There are two ways to hand the engine to an agent. Both derive their tool definitions from the same
+command tree, so there is no second list to drift.
+
+**A ready-to-mount MCP server** — `./bazi mcp`, over stdio:
+
+```json
+{ "command": "./bazi", "args": ["mcp"] }
+```
+
+It exposes the 14 calculation tools by default, all read-only; operational commands require an
+explicit `--scope ops|all`. Every tool call spawns a real CLI run, so argument validation, the
+guard on destructive operations, and the exit-code contract all carry over unchanged; exit codes
+become `isError`, and the CLI's `hint` / `next` fields go straight to the model. The engine has to
+be running.
+
+**A definition you register yourself** — `./bazi schema`, which needs no running engine:
 
 ```bash
 ./bazi schema --format openai > tools.json
@@ -254,7 +269,7 @@ Good entry points:
 | Verifying a school's casting rules | File an [algorithm discrepancy](.github/ISSUE_TEMPLATE/algorithm_discrepancy.yml) with a canonical source |
 | Adding a tradition                 | Plum Blossom, Xiao Liu Ren, and others — open an issue with the source first                              |
 | Docs and translation               | English phrasing in `README.en.md` / `llms.txt`, or a README in another language                          |
-| Agent integration                  | `./bazi schema` already exports anthropic / openai / mcp shapes; real runtime examples are welcome        |
+| Agent integration                  | `./bazi mcp` is a mountable MCP server; `./bazi schema` exports three shapes. Runtime examples welcome    |
 | Ecosystem clients                  | Frontends, bots, and SDKs stay out of this repo — link yours in an issue and they get a README section    |
 
 When reporting a discrepancy, please distinguish **a bug** (objectively wrong — we fix it and add a

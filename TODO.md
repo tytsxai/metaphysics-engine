@@ -4,29 +4,29 @@
 
 ## 当前状态
 
-| 指标     | 状态                                                        |
-| -------- | ----------------------------------------------------------- |
-| 交付形态 | HTTP API + 程序化 CLI，无前端、无账号系统                   |
-| 算法能力 | 八字/紫微/六爻/六壬/奇门/八宅/择吉/姓名/塔罗/易经/星座/合盘 |
-| 运行形态 | 无状态纯计算，没有数据库                                    |
-| 后端测试 | 475 项通过                                                  |
-| CLI 契约 | 97 项通过                                                   |
-| Lint     | 通过，无 warning                                            |
-| 部署验证 | `scripts/verify-deployment.sh` 6 项全过                     |
-| Redis    | 可选，纯缓存，缺失不影响结果                                |
+| 指标       | 状态                                                        |
+| ---------- | ----------------------------------------------------------- |
+| 交付形态   | HTTP API + 程序化 CLI，无前端、无账号系统                   |
+| 算法能力   | 八字/紫微/六爻/六壬/奇门/八宅/择吉/姓名/塔罗/易经/星座/合盘 |
+| 运行形态   | 无状态纯计算，没有数据库                                    |
+| 后端测试   | 532 项通过                                                  |
+| CLI 契约   | 153 项通过（另有引擎可复现性 11 项）                        |
+| 覆盖率     | lines 92.65 / branches 83.62 / functions 91.43，CI 有门槛   |
+| Lint       | 通过，无 warning                                            |
+| Agent 接入 | `./bazi mcp`（MCP server，14 个只读工具）+ `./bazi schema`  |
+| 部署验证   | `scripts/verify-deployment.sh` 6 项全过                     |
+| Redis      | 可选，纯缓存，缺失不影响结果                                |
 
 > 数字请在改动后用 `./bazi test --json` 重新确认再更新，不要凭印象写。
 
 ## 待办
 
-- [ ] `backend/services/ganzhi.service.js` 里 `matchPair` 定义了没用（ESLint warning）。
-      确认是漏接还是残留，然后接上或删掉 —— 别让 lint 里长期挂着一条没人看的 warning。
 - [ ] 庙旺利陷表：各家分歧且暂无可交叉验证的底本，当前不硬编。找到可靠底本再补，
       补的时候要跟其他流派分歧点一样就地标注选定口径。
-- [ ] 地名表只有 33 个城市，认不出时静默跳过真太阳时校正（`chartTime.trueSolarTime` 为
-      `null`）。真太阳时现在参与排盘了，这个静默跳过的代价比以前大 —— 要么扩表，
-      要么让「认不出」在响应里更显眼。
-- [ ] 后端覆盖率门槛：`test:coverage` 存在但无阈值，CI 也没跑
+- [ ] 城市表 88 条，覆盖不到的地名仍然只能传坐标。要继续扩就按现有结构加
+      （`name` / `cn` / `aliases` 三件套），加完 `solar_time_location.test.js` 里
+      那条「每条记录的中英文名都能解析回它自己」会替你验一遍。真正的长尾解法是接
+      geocoding，但那会给一个无状态纯计算引擎引入外部依赖，先不做。
 - [ ] Agent Benchmark 底座：成功率 / 平均步骤数 / 错误率的量化。**确定性这一层已经有了**
       （`bazi test engine` 会拿真实引擎验证每条声明可复现的命令连调两次一致，CI 里跑），
       缺的是任务级的基准用例。注意可复现性是逐条命令声明的，不是按 `calc` / `cast` 分组：
@@ -42,10 +42,18 @@
 
 ### 能力接口（本轮）
 
+- [x] `bazi mcp`：把 CLI 直接挂成 MCP server（stdio）。工具定义与 `bazi schema` 同源
+      （共用 `core/toolSchema.mjs`），每次调用 spawn 一次真实 CLI，安全闸与退出码语义
+      原样继承；默认只暴露 calc / cast 且全部只读
 - [x] `bazi schema`：从命令树导出 agent tool schema（anthropic / openai / mcp 三种形状），
       供上层 Runtime 的 Tool Registry 装载。纯本地生成，默认只导出 calc / cast
 - [x] 必填改成声明式（`required` / `choices` / `variadic` 落到 flag 与 arg 的 spec 上），
       `parseArgs` 统一校验 —— 此前写在 run 里，导出的 schema 会声称"什么都不必填"
+- [x] 后端覆盖率门槛接进 CI（lines 91 / branches 82 / functions 90，排除测试文件本身），
+      只在 22.x 那条腿上跑 —— 阈值参数是 Node 22.8 才有的
+- [x] 中文地名 100% 认不出导致真太阳时被静默跳过；扩表到 88 条并新增
+      `chartTime.locationResolution` 说明校正为什么没生效
+- [x] `matchPair` 那条 ESLint warning 已不存在（lint 当前零 warning），条目移除
 
 ### 算法能力层（本轮）
 
@@ -113,6 +121,13 @@
       空数组展开在 bash 3.2 下报 unbound
 
 ## 已放弃
+
+- 领域包 Manifest（把工具集、副作用标注、Skill 集、Benchmark、资源画像、所需权限汇成
+  一份声明式清单）—— 它的价值在于「换领域不重写」，而这只有存在第二个领域包时才检验得到。
+  目前这些信息各自已有真源且都是机器可读的：能力与副作用在 `bazi help --json` /
+  `bazi schema`，知识在 SKILL.md，可复现性声明由 `bazi test engine` 拿真实引擎验证。
+  再加一层汇总只会变成第二份需要手工同步的清单——正是这个仓库一直在消除的东西。
+  等真有第二个领域包时，照着两个包的共性去抽，比现在凭空设计一份准。
 
 - WebAssembly 重计算逻辑 —— 前端 `assembly/` 只有三个未被任何代码调用的函数，
   却被 `predev`/`prebuild` 钉在构建关键路径上，是个纯粹的失败点。已整条移除。

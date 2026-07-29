@@ -255,9 +255,18 @@ curl -X POST http://127.0.0.1:4000/api/bazi/calculate \
 表里没有的地名**不报错**，只是不做校正：响应里 `chartTime.trueSolarTime` 为 `null`，
 `chartTime.used` 就是原始钟表时间。排查「盘和预期差一柱」时先看这两个字段。
 
-要区分「没填地名」「显式关掉」「填了但认不出」这三种情况，看 `chartTime.locationResolution.status`
-（`absent` / `disabled` / `unresolved` / `resolved`）——只有 `unresolved` 需要调用方改输入，
-它同时会在服务端记一条 warn。判断校正是否生效的判据仍然是 `trueSolarTime`。
+`chartTime.locationResolution.status` 报的是**校正的最终下场**，不是「地名查得到吗」：
+
+| status        | 含义                                    | 谁该动手               |
+| ------------- | --------------------------------------- | ---------------------- |
+| `applied`     | 已校正，`chartTime.used` 是校正后的时刻 | —                      |
+| `unresolved`  | 填了但认不出，本次按钟表时间排盘        | 调用方：换写法或传坐标 |
+| `no-timezone` | 地名认得，但缺时区偏移，标准经线算不出  | 调用方：补 `timezone`  |
+| `absent`      | 没填 `birthLocation`                    | —                      |
+| `disabled`    | 显式传了 `trueSolarTime: false`         | —                      |
+
+只有 `applied` 意味着这张盘用了校正后的时刻。`unresolved` 与 `no-timezone` 会在服务端
+记一条 warn，`hint` 字段直接给出下一步。判断校正是否生效的判据仍然是 `trueSolarTime`。
 
 要绕开这张表，直接给坐标串 `"30.27,120.15"`，这条路径永远可靠。
 

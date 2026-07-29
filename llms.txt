@@ -142,11 +142,18 @@ Two categories of commands:
 
 - **Capabilities** — `calc` (bazi, ziwei, liuyao, liuren, qimen, bazhai, almanac, name, synastry,
   zodiac, rising, daily) and `cast` (iching, tarot). These are thin clients over the running engine.
-- **Operations** — `setup`, `doctor`, `env`, `stack`, `test`, `schema`. These maintain the repository
-  itself, except `schema`, which exports the command tree for agent runtimes.
+- **Operations** — `setup`, `doctor`, `env`, `stack`, `test`, `schema`, `mcp`. These maintain the
+  repository itself, except `schema` and `mcp`, which hand the command tree to agent runtimes.
 
 `./bazi help --json` is the machine-readable full command tree and the single source of truth for
 capabilities. Documentation deliberately does not duplicate the command list.
+
+`./bazi mcp` mounts the CLI as an MCP server over stdio — the ready-to-use path for an agent that
+speaks MCP. It exposes the capability commands by default (14 tools, all read-only); operations
+require an explicit `--scope ops|all`. Every tool call spawns a real CLI run rather than calling
+in-process, so argument validation, the guard on destructive operations, and the exit-code contract
+carry over unchanged; exit codes become `isError` and the CLI's `hint` / `next` fields reach the
+model verbatim. The engine must be running.
 
 `./bazi schema` exports that same tree as agent tool definitions — `--format anthropic` (default),
 `openai` or `mcp` — so an agent runtime can register these capabilities without translating the
@@ -264,7 +271,7 @@ Contributions are welcome; CONTRIBUTING.md is the entry point. Ranked by value t
    become a parameter, but the default is not silently changed.
 2. **Adding a tradition** — open an issue with the algorithmic source before implementing.
 3. **Docs and translation** — English phrasing, or a README in another language.
-4. **Agent integration** — real runtime examples for the tool schemas `./bazi schema` exports.
+4. **Agent integration** — runtime examples for `./bazi mcp` and the schemas `./bazi schema` exports.
 5. **Ecosystem clients** — frontends, bots and SDKs stay out of the repo by design, but are linked
    from it.
 
@@ -281,7 +288,7 @@ Security issues go through GitHub private vulnerability reporting, not public is
 These are deliberate choices, documented in `.claude/skills/bazi-cli/SKILL.md`. They never raise an
 error — a wrong assumption simply yields a different chart:
 
-- True solar time participates in charting by default, whenever the birth location resolves to a longitude and the timezone offset is known. Pass `trueSolarTime: false` to fall back to clock time. `chartTime.used` reports the instant actually charted; `chartTime.trueSolarTime.clockTime` preserves the original.
+- True solar time participates in charting by default, whenever the birth location resolves to a longitude and the timezone offset is known. Pass `trueSolarTime: false` to fall back to clock time. `chartTime.used` reports the instant actually charted; `chartTime.trueSolarTime.clockTime` preserves the original. Location names are recognized in Chinese as well as English (88 cities, aliases and traditional forms included), or pass `"lat,lng"` directly. Because a correction that does not happen silently changes which hour pillar you get, `chartTime.locationResolution.status` reports the outcome rather than the lookup: `applied`, `unresolved` (name not recognized), `no-timezone` (name known but no offset available), `absent`, or `disabled` — only `applied` means the chart used a corrected instant.
 - Because of that correction, `birthMinute` can change the hour pillar when the corrected instant crosses a two-hour branch boundary.
 - The location table holds 88 cities, each with a Chinese name and common aliases; names in Chinese, Japanese, and Korean scripts resolve. An unrecognized name skips correction without an error — `chartTime.locationResolution.status` (`resolved` / `unresolved` / `absent` / `disabled`) tells the three non-correcting cases apart, and `unresolved` also logs a warning. Coordinate strings always work.
 - The year pillar changes at 立春 (Start of Spring) and the month pillar at solar terms, both to the exact instant — on a boundary day the hour decides both.

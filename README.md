@@ -170,8 +170,19 @@ curl -X POST http://127.0.0.1:4000/api/tarot/draw \
 - Swagger UI: `http://127.0.0.1:4000/api-docs`
 - OpenAPI JSON: `http://127.0.0.1:4000/api-docs.json`
 
-给智能体接入时，`./bazi schema` 直接把命令树导出成 tool schema（anthropic / openai / mcp 三种形状），
-不需要引擎在跑：
+给智能体接入有两条路，工具定义同源，不存在第二份手写清单。
+
+**要一个能直接挂上去的 MCP server**，用 `./bazi mcp`（stdio）：
+
+```json
+{ "command": "./bazi", "args": ["mcp"] }
+```
+
+默认暴露 14 个算法能力工具，全部只读；运维命令要 `--scope ops|all` 显式放进来。
+每次工具调用都真的去跑一次 CLI，所以参数校验、破坏性操作的安全闸、退出码语义全部
+原样继承，退出码则翻译成 `isError` 并把 `hint` / `next` 交给模型。引擎要先起着。
+
+**要一份定义自己装载**，用 `./bazi schema`（纯本地生成，不需要引擎在跑）：
 
 ```bash
 ./bazi schema --format openai > tools.json
@@ -343,7 +354,7 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 | 排盘口径校对 | 核对某一门术数的输出，用[排盘口径模板](.github/ISSUE_TEMPLATE/algorithm_discrepancy.yml)报告，带上典籍或流派依据 |
 | 补新术数     | 梅花易数、七政四余、小六壬等；先开 issue 说明取法依据                                                            |
 | 文档与翻译   | `README.en.md` / `llms.txt` 的英文表述，或补日语、繁体中文 README                                                |
-| Agent 接入   | `./bazi schema` 已能导出 anthropic / openai / mcp 三种 tool schema，欢迎补真实 Runtime 的接入示例                |
+| Agent 接入   | `./bazi mcp` 是可直接挂载的 MCP server，`./bazi schema` 导出三种 tool schema；欢迎补各家 Runtime 的接入示例      |
 | 生态客户端   | 前端、Bot、SDK 不进主仓，但欢迎开 issue 链接过来——攒够几个就在 README 里开一节列出来                             |
 
 报告口径问题时请分清两种情况——处理方式完全不同：**算错了**（三传漏宗门、纳甲干支排错）是 bug，
