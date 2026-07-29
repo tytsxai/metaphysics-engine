@@ -159,6 +159,8 @@ const AUTO_FIXES = [
 export const doctorCommand = defineCommand({
   name: 'doctor',
   summary: '体检本地环境，逐项给出可执行的修复命令',
+  // 按最坏情况标：不带 --fix 时纯只读，但 --fix 会装依赖、建 .env。
+  effect: 'local-write',
   description:
     '每一项检查都带 fix 字段（一条可以直接复制运行的命令）。\n' +
     '有 fail 时退出码为 3（env），Agent 据此判断"该修环境"而不是"代码有问题"。',

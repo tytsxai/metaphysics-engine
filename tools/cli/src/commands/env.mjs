@@ -80,7 +80,7 @@ export const envCommand = defineCommand({
         '默认不覆盖已有 .env（已存在就直接返回，不改动）。要整份重建用 --force。\n' +
         '--force 会丢掉 .env 里的全部内容，包括本机的 AI API Key —— 它是仓库里唯一一份\n' +
         '存着真实密钥的文件，所以这条路径受安全边界保护，必须 --yes 才会真的执行。',
-      destructive: true,
+      effect: 'destructive',
       flags: [
         { name: 'force', type: 'boolean', summary: '用 .env.example 整份覆盖现有 .env（破坏性）' },
       ],
@@ -127,6 +127,7 @@ export const envCommand = defineCommand({
     defineCommand({
       name: 'show',
       summary: '查看当前生效的配置（密钥自动脱敏）',
+      effect: 'read-only',
       flags: [{ name: 'raw', type: 'boolean', summary: '不脱敏（谨慎，会打印明文密钥）' }],
       run: ({ flags, out }) => {
         const fromFile = readEnvFile();
@@ -160,6 +161,7 @@ export const envCommand = defineCommand({
     defineCommand({
       name: 'check',
       summary: '校验必填配置，缺失时退出码 3',
+      effect: 'read-only',
       description:
         '必填项随 NODE_ENV 变化：开发环境一个都没有（引擎全部走默认值），\n' +
         '生产环境只有 DOCS_PASSWORD —— 跟 server.js 启动时的校验是同一套口径。',
@@ -199,6 +201,7 @@ export const envCommand = defineCommand({
     defineCommand({
       name: 'set',
       summary: '写入或更新一个键（保留注释与顺序）',
+      effect: 'local-write',
       usage: 'bazi env set KEY=VALUE [KEY=VALUE ...]',
       args: [
         { name: 'assignments', required: true, variadic: true, summary: 'KEY=VALUE 形式，可多个' },

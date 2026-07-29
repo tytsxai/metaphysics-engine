@@ -82,3 +82,15 @@ jobs:
       # all of them. Its own contract tests are fast and need no services.
       - name: Run CLI Contract Tests
         run: npm run test:cli
+
+      # The only target that needs a live engine. It verifies that the reproducibility
+      # declared in the exported tool schema actually holds — the one piece of that
+      # metadata that can be wrong without producing any symptom until a caller uses a
+      # "deterministic" capability as a regression baseline and gets a diff the next day.
+      # `stack up` is idempotent and needs no .env: in development mode the engine has no
+      # required variables. Failing to start is itself a CI failure, which is what we want.
+      - name: Verify capability contract against a live engine
+        run: |
+          ./bazi stack up --json
+          npm run test:engine
+          ./bazi stack down --json

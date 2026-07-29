@@ -238,6 +238,7 @@ const renderStatus = (out) => (data) => {
 export const stackCommand = defineCommand({
   name: 'stack',
   summary: '管理本地引擎进程的生命周期',
+  // 子命令各不相同（status/logs 只读，up/down/restart 会动进程），逐条声明，组不继承。
   description:
     '引擎无状态，本地栈就是一个后端进程，起停查都在这里。\n' +
     'CLI 只会停自己启动的进程；端口被别人占用时会报 foreign 并拒绝接管。',
@@ -245,6 +246,7 @@ export const stackCommand = defineCommand({
     defineCommand({
       name: 'up',
       summary: '启动引擎（幂等，已在跑的会跳过）',
+      effect: 'local-write',
       examples: [{ note: '起引擎', command: 'bazi stack up --json' }],
       run: async ({ flags, out }) => {
         const env = buildEnv();
@@ -264,6 +266,7 @@ export const stackCommand = defineCommand({
     defineCommand({
       name: 'down',
       summary: '停止引擎（只停 bazi 自己启动的进程）',
+      effect: 'local-write',
       run: async ({ flags, out }) => {
         const env = buildEnv();
         const port = apiPort(env);
@@ -289,6 +292,7 @@ export const stackCommand = defineCommand({
     defineCommand({
       name: 'status',
       summary: '查看引擎在跑没跑、由谁托管、健康不健康',
+      effect: 'read-only',
       description: '默认永远退出 0（这是查询命令）。要让它在未就绪时失败，加 --require-ready。',
       flags: [
         {
@@ -321,6 +325,7 @@ export const stackCommand = defineCommand({
     defineCommand({
       name: 'logs',
       summary: '看引擎日志',
+      effect: 'read-only',
       usage: 'bazi stack logs [--tail N] [--follow]',
       flags: [
         { name: 'tail', type: 'number', summary: '取最后 N 行', default: 60 },
@@ -355,6 +360,7 @@ export const stackCommand = defineCommand({
     defineCommand({
       name: 'restart',
       summary: '先 down 再 up',
+      effect: 'local-write',
       run: async ({ flags, out }) => {
         const env = buildEnv();
         const port = apiPort(env);

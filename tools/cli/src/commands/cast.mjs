@@ -38,6 +38,16 @@ const ichingCommand = defineCommand({
   description:
     'method=number 用给定的三个数起卦（同样的数字得同样的卦，可复现）；\n' +
     'method=time 用当前时刻起卦 —— 每次调用结果都不同，不要用它做回归测试。',
+  /**
+   * cast 这一支整体不可复现，但这条命令是例外：给定数字起卦是纯计算。
+   * 曾经整棵 cast 子树被一刀切标成 not-reproducible，于是"要可复现的卦就用
+   * --numbers"这条唯一的出路，在 schema 里是看不见的。
+   */
+  reproducibility: {
+    key: 'conditional',
+    note: '--method number 配 --numbers 时是纯计算，同样的数字必得同样的卦，可用于回归比对；--method time 由调用时刻决定，每次都不同。',
+    requires: ['numbers'],
+  },
   flags: [
     {
       name: 'method',
@@ -142,6 +152,12 @@ export const castCommand = defineCommand({
   description:
     '与 calc 的区别是结果不保证可复现：塔罗每次重新随机，时间起卦取决于调用时刻。\n' +
     '跑之前引擎必须在跑（bazi stack up --only api）。',
+  kind: 'capability',
+  effect: 'read-only',
+  reproducibility: {
+    key: 'not-reproducible',
+    note: '同样的输入不保证同样的输出（重新随机，或取决于调用时刻），不要用于幂等重试或结果断言。',
+  },
   commands: [ichingCommand, tarotCommand],
   examples: [{ note: '抽一张塔罗', command: 'bazi cast tarot --json' }],
 });

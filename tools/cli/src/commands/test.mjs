@@ -3,7 +3,8 @@ import path from 'node:path';
 import { defineCommand } from '../core/registry.mjs';
 import { CliError, EXIT, usageError } from '../core/errors.mjs';
 import { run } from '../core/proc.mjs';
-import { fileExists, paths, readJsonFile } from '../core/context.mjs';
+import { buildEnv, fileExists, paths, readJsonFile } from '../core/context.mjs';
+import { collectStackStatus } from './stack.mjs';
 
 /**
  * script 是 package.json 里的脚本名，用来在跑之前判断这个目标到底存不存在。
@@ -30,11 +31,23 @@ export const TARGETS = {
     script: 'test',
     args: ['test'],
   },
+  engine: {
+    label: '能力契约验证（拿真实引擎验可复现性声明）',
+    cwd: () => paths.root,
+    script: 'test:engine',
+    args: ['run', 'test:engine'],
+    /**
+     * 唯一需要引擎在跑的目标。不标出来的话，引擎没起时它会退 1（"测试失败"），
+     * 而真实原因是环境未就绪 —— 对 Agent 来说这两者的下一步动作完全相反。
+     */
+    requiresEngine: true,
+  },
 };
 
 // cli 排在最前面：它最快，而且它挂了意味着"你正在用的这个工具本身坏了"，
 // 后面几个目标的结论都不再可信，先看到它比先看到 lint 有用。
-const DEFAULT_SET = ['cli', 'lint', 'backend'];
+// engine 排在最后：它是唯一需要外部依赖的，本地没起引擎时会被记 skipped。
+const DEFAULT_SET = ['cli', 'lint', 'backend', 'engine'];
 
 /**
  * 目标不可跑的原因 —— 返回 null 表示可跑。
@@ -43,9 +56,15 @@ const DEFAULT_SET = ['cli', 'lint', 'backend'];
  * 会被记成 failed（"代码有问题"），而真实原因是这个目标压根不存在（环境/配置问题）。
  * 两者对 Agent 的下一步动作完全不同，不能混。
  */
-const blockedReason = (target, cwd) => {
+const blockedReason = async (target, cwd) => {
   if (!fileExists(path.join(cwd, 'node_modules'))) {
     return { reason: `${cwd} 依赖未安装`, next: 'bazi setup' };
+  }
+  if (target.requiresEngine) {
+    const status = await collectStackStatus(buildEnv());
+    if (!status.ready) {
+      return { reason: '本地引擎未就绪（这个目标要打真实引擎）', next: 'bazi stack up' };
+    }
   }
   if (!target.script) return null;
   const pkg = readJsonFile(path.join(cwd, 'package.json'));
@@ -69,8 +88,14 @@ const buildTestEnv = () => ({ ...process.env });
 
 export const testCommand = defineCommand({
   name: 'test',
-  summary: '跑测试（cli / lint / backend）',
-  description: '不带参数把三个目标全跑一遍。\n引擎无状态，测试不需要数据库或任何外部服务。',
+  summary: '跑测试（cli / lint / backend / engine）',
+  // 测试本身是检查，但它 spawn 的 npm script 可以写任何东西（覆盖率产物等）。
+  effect: 'local-write',
+  description:
+    '不带参数把四个目标全跑一遍。\n' +
+    '前三个不需要任何外部服务（引擎无状态，测试不碰数据库）；\n' +
+    'engine 是唯一要引擎在跑的目标 —— 它拿真实引擎验证能力命令的可复现性声明，\n' +
+    '引擎没起时记 skipped 而不是 failed。',
   usage: 'bazi test [目标...] [-- 透传给底层的参数]',
   args: [{ name: 'targets', variadic: true, summary: '要跑的目标', choices: Object.keys(TARGETS) }],
   flags: [
@@ -107,7 +132,7 @@ export const testCommand = defineCommand({
     for (const name of targets) {
       const target = TARGETS[name];
       const cwd = target.cwd();
-      const blocked = blockedReason(target, cwd);
+      const blocked = await blockedReason(target, cwd);
       if (blocked) {
         results.push({
           target: name,

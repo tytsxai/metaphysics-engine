@@ -1,4 +1,4 @@
-import { GLOBAL_FLAGS, defineCommand } from '../core/registry.mjs';
+import { GLOBAL_FLAGS, defineCommand, inheritContract } from '../core/registry.mjs';
 import { EXIT_MEANING } from '../core/errors.mjs';
 import { usageError } from '../core/errors.mjs';
 
@@ -10,7 +10,12 @@ import { usageError } from '../core/errors.mjs';
  *
  * **必须从命令树生成，不能手写一份。** 手写的清单和 `help --json` 一定会分叉，
  * 而分叉的表现是"模型按 schema 构造了一个 CLI 根本不认的调用"—— 报的是用法错，
- * 排查的人却会去怀疑模型。同理由，这个文件里不出现任何命令名。
+ * 排查的人却会去怀疑模型。
+ *
+ * 同理由，这个文件里**不出现任何命令名**：归属（capability / ops）、副作用、
+ * 可复现性全部读命令自己的声明。这里曾经有过两张按命令名写死的表，
+ * 代价是新增一条能力命令会被默认归成运维、于是静默不被导出，
+ * 而整棵 calc 子树被一刀切标成"确定"也掩盖了 daily 恒不可复现这种真实差异。
  */
 
 const FORMATS = ['anthropic', 'openai', 'mcp'];
@@ -21,38 +26,18 @@ const EXPOSED_GLOBAL_FLAGS = ['dry-run', 'yes'];
 
 const JSON_TYPE = { boolean: 'boolean', number: 'number', string: 'string', list: 'array' };
 
-/**
- * 能力 / 运维的分界与 SKILL.md 一致：calc 与 cast 是这个项目对外输出的算法能力，
- * 其余命令是维护本仓库的。默认只导出前者 —— 外部调用方要的是能力，
- * 而运维命令里有会改仓库的（含破坏性），不该默认变成模型可以随手调的工具。
- */
-const CAPABILITY_ROOTS = ['calc', 'cast'];
-
-/**
- * 可复现性。这是 calc 与 cast 分家的**唯一理由**，也是调用方最容易误判的一点，
- * 所以必须进 schema，而不是只写在文档里。
- */
-const REPRODUCIBILITY = {
-  calc: {
-    key: 'deterministic-with-explicit-inputs',
-    note: '给全输入时同样输入必然同样输出，可用于回归比对；起课类命令不给日期时辰则取引擎当下，那次调用不可复现。',
-  },
-  cast: {
-    key: 'not-reproducible',
-    note: '同样的输入不保证同样的输出（重新随机或取决于调用时刻），不要用于幂等重试或结果断言。',
-  },
-};
-
-const kindOf = (path) => (CAPABILITY_ROOTS.includes(path[0]) ? 'capability' : 'ops');
-
 /** 工具名：命令路径拍平。MCP 要求 ^[a-zA-Z0-9_-]{1,64}$，命令名本身只有小写字母。 */
 const toolNameOf = (path) => ['bazi', ...path].join('_');
 
-/** 收集所有可执行节点（有 run 的叶子）。分组节点跑不了，不该出现在工具清单里。 */
-const collectLeaves = (node, path = []) => {
+/**
+ * 收集所有可执行节点（有 run 的叶子），顺带把契约沿树继承下来。
+ * 分组节点跑不了，不该出现在工具清单里。
+ */
+const collectLeaves = (node, path = [], inherited = {}) => {
+  const contract = inheritContract(node, inherited);
   const children = node.commands || [];
-  if (!children.length) return node.run ? [{ node, path }] : [];
-  return children.flatMap((child) => collectLeaves(child, [...path, child.name]));
+  if (!children.length) return node.run ? [{ node, path, contract }] : [];
+  return children.flatMap((child) => collectLeaves(child, [...path, child.name], contract));
 };
 
 const schemaForSpec = (spec) => {
@@ -73,7 +58,7 @@ const schemaForSpec = (spec) => {
  * 参数表。位置参数与选项在这里被抹平成同一批 property —— 模型不该关心
  * 一个值最终是拼在命令后面还是拼成 `--flag`，那是 catalog 里的映射负责的事。
  */
-const parametersOf = (node) => {
+const parametersOf = (node, contract) => {
   const parameters = [];
 
   (node.args || []).forEach((arg, index) => {
@@ -103,7 +88,7 @@ const parametersOf = (node) => {
   for (const name of EXPOSED_GLOBAL_FLAGS) {
     // --yes 只对破坏性命令有意义：非破坏性命令上它是个纯噪音选项，
     // 而模型看到一个叫 yes 的布尔参数很容易顺手设成 true。
-    if (name === 'yes' && !node.destructive) continue;
+    if (name === 'yes' && contract.effect !== 'destructive') continue;
     const spec = GLOBAL_FLAGS.find((f) => f.name === name);
     if (!spec) continue;
     parameters.push({
@@ -128,12 +113,22 @@ const inputSchemaOf = (parameters) => {
   return { type: 'object', properties, required, additionalProperties: false };
 };
 
-const descriptionOf = (node, path, reproducibility) =>
+/**
+ * 副作用要进 description，不能只进 MCP 的 annotations —— anthropic / openai
+ * 两种格式里没有放 annotation 的地方，模型能看到的只有这段文字。
+ */
+const EFFECT_NOTE = {
+  'read-only': null, // 只读是默认预期，写出来是噪音
+  'local-write': '副作用：会改本机状态（进程 / 配置 / 依赖），不是只读查询。',
+  destructive: '破坏性操作：会不可逆地丢掉已有内容，需要把 yes 设为 true 才会真正执行。',
+};
+
+const descriptionOf = (node, path, contract) =>
   [
     node.summary,
     node.description,
-    reproducibility ? `可复现性：${reproducibility.note}` : null,
-    node.destructive ? '破坏性操作：需要把 yes 设为 true 才会真正执行。' : null,
+    contract.reproducibility ? `可复现性：${contract.reproducibility.note}` : null,
+    contract.effect ? EFFECT_NOTE[contract.effect] : null,
     `等价命令：bazi ${path.join(' ')}`,
   ]
     .filter(Boolean)
@@ -147,32 +142,36 @@ const wrapForFormat = (format, { name, description, inputSchema }) => {
   return { name, description, input_schema: inputSchema };
 };
 
-/** MCP 的 annotations 正好装得下这些提示，别的格式塞进去会被 API 当成非法字段拒掉。 */
-const annotationsOf = (node, kind) => ({
+/**
+ * MCP 的 annotations 正好装得下这些提示，别的格式塞进去会被 API 当成非法字段拒掉。
+ *
+ * 两个 hint 都从声明的 effect 直接派生。这里曾经写的是"属于 capability 就算只读"——
+ * 今天恰好成立（能力命令都是纯计算），但那是**推断**：哪天加一条会写文件的能力命令，
+ * 这个字段就会说谎，而读它的正是上层的安全拦截。
+ */
+const annotationsOf = (node, contract) => ({
   title: node.summary || undefined,
-  readOnlyHint: kind === 'capability' ? true : undefined,
-  destructiveHint: node.destructive ? true : undefined,
+  readOnlyHint: contract.effect === 'read-only' ? true : undefined,
+  destructiveHint: contract.effect === 'destructive' ? true : undefined,
 });
 
 const buildTools = ({ root, format, scope }) => {
   const tools = [];
   const catalog = [];
 
-  for (const { node, path } of collectLeaves(root)) {
-    const kind = kindOf(path);
-    if (scope !== 'all' && scope !== kind) continue;
+  for (const { node, path, contract } of collectLeaves(root)) {
+    if (scope !== 'all' && scope !== contract.kind) continue;
 
     const name = toolNameOf(path);
-    const reproducibility = REPRODUCIBILITY[path[0]] || null;
-    const parameters = parametersOf(node);
+    const parameters = parametersOf(node, contract);
     const inputSchema = inputSchemaOf(parameters);
     const tool = wrapForFormat(format, {
       name,
-      description: descriptionOf(node, path, reproducibility),
+      description: descriptionOf(node, path, contract),
       inputSchema,
     });
     if (format === 'mcp') {
-      const annotations = annotationsOf(node, kind);
+      const annotations = annotationsOf(node, contract);
       if (Object.values(annotations).some((v) => v !== undefined)) tool.annotations = annotations;
     }
     tools.push(tool);
@@ -181,9 +180,12 @@ const buildTools = ({ root, format, scope }) => {
       name,
       path: path.join(' '),
       argv: path,
-      kind,
-      destructive: Boolean(node.destructive),
-      reproducibility: reproducibility?.key ?? null,
+      kind: contract.kind,
+      /** 副作用是调用方做权限判断的依据，比 destructive 这个布尔多两档。 */
+      effect: contract.effect,
+      destructive: contract.effect === 'destructive',
+      reproducibility: contract.reproducibility?.key ?? null,
+      reproducibilityRequires: contract.reproducibility?.requires,
       parameters: parameters.map(
         ({ property, kind: parameterKind, flag, index, variadic, required }) => ({
           property,
@@ -214,6 +216,7 @@ const pickOne = (value, allowed, flag, fallback) => {
 export const schemaCommand = defineCommand({
   name: 'schema',
   summary: '把命令树导出成 agent tool schema（供上层 Runtime 的 Tool Registry 装载）',
+  effect: 'read-only',
   description:
     '从 `help --json` 的同一棵命令树生成，不存在第二份手写清单 —— 新增命令后无需改这里。\n' +
     '不需要引擎在跑：纯本地生成。\n\n' +

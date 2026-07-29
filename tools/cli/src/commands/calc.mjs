@@ -333,6 +333,15 @@ const zodiacCommand = defineCommand({
   name: 'zodiac',
   summary: '西洋星座：星座信息或运势',
   usage: 'bazi calc zodiac <sign> [选项]',
+  /**
+   * 星座信息本身是静态表，怎么查都一样；但 --horoscope 的响应里带一段
+   * 按引擎当下时刻生成的日期区间（daily 是当天、weekly 是本周），跨天调用就不同。
+   * 运势正文是纯函数产物，只有这个日期标签在动 —— 差异小，但拿它做快照比对照样会挂。
+   */
+  reproducibility: {
+    key: 'conditional',
+    note: '不带 --horoscope 时是静态星座信息，完全可复现；带上时响应含引擎当下算出的日期区间，跨天（weekly 跨周、monthly 跨月）结果不同。',
+  },
   args: [
     {
       name: 'sign',
@@ -447,6 +456,18 @@ const CAST_DATE_FLAGS = [
   { name: 'timeout', type: 'number', summary: '请求超时毫秒数' },
 ];
 
+/**
+ * 起课类的可复现性：默认落到引擎当日当时，把日期给全才确定。
+ *
+ * 这条声明会被 `bazi schema` 原样带进工具描述里 —— 装载 schema 的 Runtime
+ * 不一定读得到 SKILL.md，而"拿一个当日盘当回归基准"是最常见的误用。
+ */
+const castDateReproducibility = (requires) => ({
+  key: 'conditional',
+  note: `给全 ${requires.map((r) => `--${r}`).join(' ')} 才可复现；不给则取引擎当日当时，那次调用的结果隔天就变。`,
+  requires,
+});
+
 /** 各命令的 dry-run 分支长得一样，收敛掉。 */
 const previewOrCall = async ({ flags, out, path, body, method = 'POST', step, render }) => {
   if (flags['dry-run']) {
@@ -472,6 +493,8 @@ const liuyaoCommand = defineCommand({
   description:
     '装卦不是起卦：六爻由 --lines 给定，引擎只负责装。\n' +
     '起卦日决定六神与旬空，不给 --date 则取引擎当日。',
+  // --hour 不参与装卦（只有年月日进 body），所以给了 --date 就已经确定。
+  reproducibility: castDateReproducibility(['date']),
   flags: [
     {
       name: 'lines',
@@ -553,6 +576,7 @@ const liurenCommand = defineCommand({
   name: 'liuren',
   summary: '大六壬起课：天地盘、四课、三传、十二天将',
   description: '月将取月建六合、以中气换将。三传九宗门全备，课体名目在 courseType 里。',
+  reproducibility: castDateReproducibility(['date', 'hour']),
   flags: CAST_DATE_FLAGS,
   examples: [
     {
@@ -599,6 +623,7 @@ const qimenCommand = defineCommand({
   name: 'qimen',
   summary: '奇门遁甲排局：三奇六仪、九星八门八神、值符值使',
   description: '定局用拆补法，天盘用转盘法。格局判定不由引擎给出（属断语层）。',
+  reproducibility: castDateReproducibility(['date', 'hour']),
   flags: CAST_DATE_FLAGS,
   examples: [
     { note: '指定日期时辰', command: 'bazi calc qimen --date 2024-05-20 --hour 14 --json' },
@@ -717,6 +742,7 @@ const bazhaiCommand = defineCommand({
 const almanacCommand = defineCommand({
   name: 'almanac',
   summary: '择吉历注：建除、值宿、吉神凶煞、彭祖百忌',
+  reproducibility: castDateReproducibility(['date']),
   flags: [
     { name: 'date', type: 'string', summary: '日期 YYYY-MM-DD（不给则取引擎当日）' },
     { name: 'timeout', type: 'number', summary: '请求超时毫秒数' },
@@ -820,6 +846,14 @@ const dailyCommand = defineCommand({
     '不给出生信息时只返回当日日柱；要结合本命盘就把 --birth 与 --gender 一起给全，\n' +
     '缺一个引擎会退 4。fortune.branchRelations 给的是流日地支与本命日支的客观关系，\n' +
     'score 只是按这些关系折算的粗略指标。',
+  /**
+   * 和其它起课类不同：daily **没有**日期参数，日柱恒取引擎当日 —— 无论怎么调用
+   * 都不可复现。这条曾被归进"给全 --date 就确定"那一类，但它连 --date 都没有。
+   */
+  reproducibility: {
+    key: 'not-reproducible',
+    note: '日柱恒取引擎当日，没有指定日期的参数，隔天调用结果必然不同；要可复现的当日信息用 calc almanac --date。',
+  },
   flags: [
     { name: 'birth', type: 'string', summary: '出生时刻 YYYY-MM-DDTHH:mm（可选）' },
     {
@@ -959,7 +993,18 @@ export const calcCommand = defineCommand({
     '这些命令是引擎的客户端，跑之前引擎必须在跑（bazi stack up --only api）。\n' +
     '连不上会退 3 并给出拉起引擎的命令；引擎拒绝请求退 4；被限流退 5。\n\n' +
     '起课类命令（liuren / qimen / liuyao / almanac）不给 --date 时取引擎当日，\n' +
-    '**此时结果不可复现**，输出末尾会标注。要可复现就显式给 --date 和 --hour。',
+    '**此时结果不可复现**，输出末尾会标注。要可复现就显式给 --date 和 --hour。\n' +
+    'daily 没有日期参数可给，恒取引擎当日，任何情况下都不可复现。',
+  kind: 'capability',
+  /**
+   * 整棵子树同为纯计算：引擎无状态，CLI 只是它的客户端，本机什么都不写。
+   * 声明在根上，子命令继承 —— 但可复现性各不相同，逐条覆盖。
+   */
+  effect: 'read-only',
+  reproducibility: {
+    key: 'deterministic',
+    note: '给定输入必然同样输出，可用于回归比对。',
+  },
   commands: [
     baziCommand,
     ziweiCommand,

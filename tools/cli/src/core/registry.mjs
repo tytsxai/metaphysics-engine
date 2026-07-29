@@ -1,6 +1,41 @@
 import { usageError } from './errors.mjs';
 
 /**
+ * 副作用等级 —— 每条可执行命令必须声明的元数据。
+ *
+ * 这不是文档字段，是**同一份数据的两个读者**：`bazi schema` 按它生成 readOnlyHint /
+ * destructiveHint（上层的安全拦截读这个），help 按它渲染标记（人读这个）。
+ * 靠"命令名看着像只读"或"它属于 calc 所以是只读"推断都会在某天说谎 ——
+ * 推断的前提变了不会有任何报错，而说谎的那一刻正是安全闸该拦住的那一刻。
+ *
+ *   read-only     不改任何东西（纯计算、查询、预演）
+ *   local-write   会改本机状态：进程、.env 的单个键、依赖、运行态文件
+ *   destructive   会不可逆地丢掉已有内容，必须过 assertDestructiveAllowed
+ *
+ * 取最坏情况标注：`doctor --fix` 会写，所以 doctor 整条是 local-write；
+ * `env init` 只有 --force 才覆盖，但整条按 destructive 标，实际是否拦截由
+ * 运行时的 assertDestructiveAllowed 精确判断。宁可标重，不可标轻。
+ */
+export const EFFECTS = ['read-only', 'local-write', 'destructive'];
+
+/** 命令归属：capability 是这个项目对外输出的算法能力，ops 是维护本仓库的。 */
+export const KINDS = ['capability', 'ops'];
+
+/**
+ * 可复现性 —— 调用方最容易误判的一点，所以是声明而不是靠命令名分组。
+ *
+ *   deterministic     给定输入必然同样输出，可用于回归比对
+ *   conditional       确定与否取决于怎么调用，note 说清条件，requires 列出把哪些参数
+ *                     给全就能拿到可复现的结果（有些条件不是"补参数"能满足的，可以不给）
+ *   not-reproducible  同样输入不保证同样输出（重新随机，或恒取引擎当下）
+ *
+ * 曾经这份数据按命令树的第一段一刀切（calc 全确定、cast 全不确定），两边都是错的：
+ * `calc daily` 压根没有日期参数可给，恒不可复现；`cast iching --numbers` 是确定性的。
+ * 调用方照着一刀切的标注去做回归比对，会拿到一个每天都在变的"基准"。
+ */
+export const REPRODUCIBILITY_KEYS = ['deterministic', 'conditional', 'not-reproducible'];
+
+/**
  * 全局标志：每条命令都接受，不需要各自声明。
  */
 export const GLOBAL_FLAGS = [
@@ -11,20 +46,54 @@ export const GLOBAL_FLAGS = [
   { name: 'help', alias: 'h', type: 'boolean', summary: '显示帮助' },
 ];
 
-export const defineCommand = (spec) => ({
-  name: spec.name,
-  aliases: spec.aliases || [],
-  summary: spec.summary || '',
-  description: spec.description || '',
-  usage: spec.usage || '',
-  args: spec.args || [],
-  flags: spec.flags || [],
-  examples: spec.examples || [],
-  /** 破坏性命令要打标，help --json 里 Agent 能一眼看出哪些需要 --yes */
-  destructive: Boolean(spec.destructive),
-  commands: spec.commands || [],
-  run: spec.run,
-});
+/** 定义期的写错立刻炸掉，别等到导出的 schema 里出现一个谁都不认识的值。 */
+const assertOneOf = (value, allowed, field, name) => {
+  if (value === undefined || allowed.includes(value)) return;
+  throw new Error(`命令 ${name} 的 ${field} 只能是 ${allowed.join(' / ')}，收到 "${value}"`);
+};
+
+const normalizeReproducibility = (spec) => {
+  const value = spec.reproducibility;
+  if (!value) return null;
+  assertOneOf(value.key, REPRODUCIBILITY_KEYS, 'reproducibility.key', spec.name);
+  // conditional 不说明条件等于没标：调用方仍然不知道要给什么才拿得到可复现的结果。
+  if (value.key === 'conditional' && !value.note) {
+    throw new Error(`命令 ${spec.name} 标了 conditional，就必须用 note 说清楚"什么情况下才确定"`);
+  }
+  return { key: value.key, note: value.note || '', requires: value.requires || undefined };
+};
+
+export const defineCommand = (spec) => {
+  assertOneOf(spec.effect, EFFECTS, 'effect', spec.name);
+  assertOneOf(spec.kind, KINDS, 'kind', spec.name);
+
+  return {
+    name: spec.name,
+    aliases: spec.aliases || [],
+    summary: spec.summary || '',
+    description: spec.description || '',
+    usage: spec.usage || '',
+    args: spec.args || [],
+    flags: spec.flags || [],
+    examples: spec.examples || [],
+    /**
+     * 契约三件套。都可以由父节点继承（见 inheritContract）：整棵 calc 子树同为
+     * 只读的算法能力，在根上声明一次即可；stack 子树各不相同，就逐条声明。
+     */
+    effect: spec.effect,
+    kind: spec.kind,
+    reproducibility: normalizeReproducibility(spec),
+    /**
+     * 破坏性是 effect 的**派生**，不是第二个真源 —— 两个字段各写各的，
+     * 迟早会出现"标了 destructive 但 effect 说只读"这种自相矛盾的声明。
+     */
+    get destructive() {
+      return this.effect === 'destructive';
+    },
+    commands: spec.commands || [],
+    run: spec.run,
+  };
+};
 
 const matchChild = (node, token) =>
   (node.commands || []).find((c) => c.name === token || c.aliases.includes(token));
@@ -45,6 +114,32 @@ export const resolveCommand = (root, argv) => {
     index += 1;
   }
   return { node, commandPath, rest: argv.slice(index) };
+};
+
+/**
+ * 契约继承：子命令没声明就用父的。
+ *
+ * kind 缺省是 ops —— 新增一条命令忘了声明归属时，它会落在"运维"这边，
+ * 于是不会被 `bazi schema` 默认导出。反过来缺省成 capability 的话，
+ * 一条会改仓库的命令会悄悄进入模型可调的工具清单。缺省值要往安全那边偏。
+ */
+export const inheritContract = (node, inherited = {}) => ({
+  kind: node.kind || inherited.kind || 'ops',
+  effect: node.effect || inherited.effect || null,
+  reproducibility: node.reproducibility || inherited.reproducibility || null,
+});
+
+/** 沿命令路径把契约继承一路算下来 —— `bazi help calc bazi` 也要拿到 calc 那层的声明。 */
+export const contractAlong = (root, commandPath) => {
+  let node = root;
+  let contract = inheritContract(root);
+  for (const token of commandPath) {
+    const child = matchChild(node, token);
+    if (!child) break;
+    node = child;
+    contract = inheritContract(child, contract);
+  }
+  return contract;
 };
 
 const flagSpecFor = (node, name) =>
@@ -198,12 +293,35 @@ const flagLine = (spec) => {
   return `${left.padEnd(34)}${spec.summary || ''}${choices}${mark}`;
 };
 
-export const renderHelp = (node, commandPath) => {
+const EFFECT_CN = {
+  'read-only': '只读（不改任何东西）',
+  'local-write': '会改本机状态（进程 / 配置 / 依赖）',
+  destructive: '破坏性（会丢掉已有内容，需要 --yes）',
+};
+
+const REPRODUCIBILITY_CN = {
+  deterministic: '同样输入必然同样输出，可用于回归比对',
+  conditional: '给全下列参数才可复现',
+  'not-reproducible': '同样输入不保证同样输出，不要用于断言或幂等重试',
+};
+
+export const renderHelp = (node, commandPath, contract = inheritContract(node)) => {
   const full = ['bazi', ...commandPath].join(' ');
   const lines = [];
 
   if (node.summary) lines.push(node.summary, '');
   if (node.description) lines.push(node.description, '');
+
+  // 副作用与可复现性对人同样是"动手之前要知道的事"，不该只存在于 --json 里。
+  if (contract.effect || contract.reproducibility) {
+    if (contract.effect) lines.push(`副作用: ${EFFECT_CN[contract.effect] || contract.effect}`);
+    if (contract.reproducibility) {
+      const { key, requires } = contract.reproducibility;
+      const detail = requires?.length ? `：${requires.map((r) => `--${r}`).join(' ')}` : '';
+      lines.push(`可复现性: ${REPRODUCIBILITY_CN[key] || key}${detail}`);
+    }
+    lines.push('');
+  }
 
   lines.push('用法:');
   if (node.usage) {
@@ -268,18 +386,27 @@ export const renderHelp = (node, commandPath) => {
  * 这里是能力清单的唯一真源，漏了它 Agent 就发现不了 --yes / --dry-run ——
  * 而这两个恰好是遇到 exit 7 时唯一的出路。
  */
-export const toJsonTree = (node, commandPath = [], { root = true } = {}) => ({
-  name: node.name,
-  path: commandPath.join(' '),
-  summary: node.summary,
-  description: node.description || undefined,
-  usage: node.usage || undefined,
-  destructive: node.destructive || undefined,
-  args: node.args.length ? node.args : undefined,
-  flags: node.flags.length ? node.flags : undefined,
-  globalFlags: root ? GLOBAL_FLAGS : undefined,
-  examples: node.examples.length ? node.examples : undefined,
-  commands: node.commands.length
-    ? node.commands.map((child) => toJsonTree(child, [...commandPath, child.name], { root: false }))
-    : undefined,
-});
+export const toJsonTree = (node, commandPath = [], { root = true, inherited = {} } = {}) => {
+  const contract = inheritContract(node, inherited);
+  return {
+    name: node.name,
+    path: commandPath.join(' '),
+    summary: node.summary,
+    description: node.description || undefined,
+    usage: node.usage || undefined,
+    kind: contract.kind,
+    /** 继承来的也照样输出：读者要的是"这条命令会不会写"，不是"它在哪一层声明的"。 */
+    effect: contract.effect || undefined,
+    reproducibility: contract.reproducibility || undefined,
+    destructive: contract.effect === 'destructive' || undefined,
+    args: node.args.length ? node.args : undefined,
+    flags: node.flags.length ? node.flags : undefined,
+    globalFlags: root ? GLOBAL_FLAGS : undefined,
+    examples: node.examples.length ? node.examples : undefined,
+    commands: node.commands.length
+      ? node.commands.map((child) =>
+          toJsonTree(child, [...commandPath, child.name], { root: false, inherited: contract })
+        )
+      : undefined,
+  };
+};

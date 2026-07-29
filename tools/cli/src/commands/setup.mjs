@@ -44,6 +44,8 @@ const buildSteps = ({ skipInstall }) => {
 export const setupCommand = defineCommand({
   name: 'setup',
   summary: '一次性把本地开发环境准备好（幂等，可反复跑）',
+  // 装依赖、生成 .env —— 只新增不覆盖，所以是 local-write 而不是 destructive。
+  effect: 'local-write',
   description: '装依赖 -> 建 .env。\n不启动任何服务；起引擎用 bazi stack up。',
   flags: [
     {

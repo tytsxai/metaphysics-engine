@@ -1,6 +1,12 @@
 import { createOutput } from './core/output.mjs';
 import { CliError, EXIT } from './core/errors.mjs';
-import { defineCommand, parseArgs, renderHelp, resolveCommand } from './core/registry.mjs';
+import {
+  contractAlong,
+  defineCommand,
+  parseArgs,
+  renderHelp,
+  resolveCommand,
+} from './core/registry.mjs';
 
 import { calcCommand } from './commands/calc.mjs';
 import { castCommand } from './commands/cast.mjs';
@@ -71,22 +77,26 @@ export const main = async (argv) => {
       });
     }
 
+    const contract = contractAlong(rootCommand, commandPath);
+
     if (flags.help || !node.run) {
       // 显式要 help，或者裸跑 `bazi`：都算正常收尾。
       if (flags.help || node === rootCommand) {
         if (flags.json) {
           // 和 `bazi help --json` 共用同一个信封，否则 Agent 解析 .ok 会拿到 undefined
-          process.stdout.write(`${JSON.stringify(helpPayload(node, commandPath), null, 2)}\n`);
+          process.stdout.write(
+            `${JSON.stringify(helpPayload(node, commandPath, rootCommand), null, 2)}\n`
+          );
           return EXIT.OK;
         }
-        process.stdout.write(`${renderHelp(node, commandPath)}\n`);
+        process.stdout.write(`${renderHelp(node, commandPath, contract)}\n`);
         return EXIT.OK;
       }
 
       // 分组节点（stack / env / calc…）没带子命令：用法错。
       // 人还是要看到子命令列表，所以文本模式先打帮助再失败；json 模式只出错误信封，
       // 否则 stdout 会同时出现帮助文本和 JSON，解析契约就破了。
-      out.render({}, () => renderHelp(node, commandPath));
+      out.render({}, () => renderHelp(node, commandPath, contract));
       throw new CliError(`\`bazi ${commandPath.join(' ')}\` 是命令分组，需要一个子命令`, {
         exit: EXIT.USAGE,
         code: 'missing_subcommand',

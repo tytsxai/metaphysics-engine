@@ -149,32 +149,83 @@ test('没有过度声明必填：第一条示例必须能满足全部必填项',
   assert.deepEqual(problems, []);
 });
 
-test('按 catalog 的映射拼出来的 argv 真能跑', () => {
-  // 端到端证明这套映射规则可用：dry-run 不发请求，所以不依赖引擎。
-  const data = schema();
-  const entry = data.catalog.find((c) => c.name === 'bazi_calc_bazi');
-  assert.notEqual(entry, undefined);
-
-  const toolCall = { birth: '1990-05-20T14:30', gender: 'male', 'dry-run': true };
+/** 按 invocation 那段约定，把一次工具调用还原成 argv —— 上层要实现的就是这个函数。 */
+const argvFromToolCall = (entry, toolCall, alwaysAppend = []) => {
   const argv = [...entry.argv];
-  for (const parameter of entry.parameters) {
+  const positionals = entry.parameters
+    .filter((p) => p.kind === 'positional')
+    .sort((a, b) => a.index - b.index);
+
+  for (const parameter of positionals) {
     const value = toolCall[parameter.property];
     if (value === undefined) continue;
-    if (parameter.kind === 'positional') {
-      argv.push(String(value));
-      continue;
-    }
+    if (parameter.variadic) argv.push(...[].concat(value).map(String));
+    else argv.push(String(value));
+  }
+
+  for (const parameter of entry.parameters.filter((p) => p.kind === 'flag')) {
+    const value = toolCall[parameter.property];
+    if (value === undefined) continue;
     if (typeof value === 'boolean') {
       if (value) argv.push(parameter.flag);
       continue;
     }
-    argv.push(parameter.flag, String(value));
+    for (const item of [].concat(value)) argv.push(parameter.flag, String(item));
   }
-  argv.push(...data.invocation.alwaysAppend);
 
-  const { code, stdout } = bazi(argv);
-  assert.equal(code, 0, `按 catalog 拼出的 argv 跑挂了：bazi ${argv.join(' ')}`);
-  assert.equal(JSON.parse(stdout).ok, true);
+  return [...argv, ...alwaysAppend];
+};
+
+/** 从示例反推出一次工具调用 —— 示例是唯一一份"确定能跑"的真实参数。 */
+const toolCallFromExample = (entry, tool) => {
+  const properties = (tool.input_schema || tool.inputSchema).properties;
+  const tokens = entry.examples[0].split(/\s+/).slice(1 + entry.argv.length);
+  const call = {};
+  const positionals = entry.parameters
+    .filter((p) => p.kind === 'positional')
+    .sort((a, b) => a.index - b.index);
+  let positionalAt = 0;
+
+  for (let i = 0; i < tokens.length; i += 1) {
+    const token = tokens[i];
+    if (token.startsWith('--')) {
+      const name = token.slice(2);
+      if (!entry.parameters.some((p) => p.property === name)) continue; // --json 之类的全局标志
+      if (properties[name]?.type === 'boolean') call[name] = true;
+      else {
+        call[name] = tokens[i + 1];
+        i += 1;
+      }
+      continue;
+    }
+    const parameter = positionals[positionalAt];
+    if (!parameter) continue;
+    if (parameter.variadic) call[parameter.property] = [...(call[parameter.property] || []), token];
+    else {
+      call[parameter.property] = token;
+      positionalAt += 1;
+    }
+  }
+  return call;
+};
+
+test('按 catalog 的映射拼出来的 argv，每条能力都真能跑', async (t) => {
+  // 端到端证明这套映射规则可用。只测一条命令是不够的：位置参数、可变参数、布尔、
+  // 带取值的选项分散在不同命令上，映射规则真正会出错的地方恰恰是那几条特殊的。
+  // dry-run 不发请求，所以不依赖引擎在跑。
+  const data = schema();
+  for (const entry of data.catalog) {
+    // 带引号的示例（--location "Beijing, CN"）按空格拆会拆坏，那不是映射规则的问题
+    if (!entry.examples.length || entry.examples[0].includes('"')) continue;
+    await t.test(entry.name, () => {
+      const tool = data.tools.find((x) => x.name === entry.name);
+      const toolCall = { ...toolCallFromExample(entry, tool), 'dry-run': true };
+      const argv = argvFromToolCall(entry, toolCall, data.invocation.alwaysAppend);
+      const { code, stdout } = bazi(argv);
+      assert.equal(code, 0, `按 catalog 拼出的 argv 跑挂了：bazi ${argv.join(' ')}`);
+      assert.equal(JSON.parse(stdout).ok, true);
+    });
+  }
 });
 
 test('可变位置参数导成数组，不被砍成单值', () => {
@@ -216,17 +267,92 @@ test('三种格式各自的形状正确，且不夹带 API 不认的字段', () 
   }
 });
 
-test('cast 的不可复现性必须出现在工具描述里', () => {
-  // 调用方最容易踩的坑就是拿 cast 的结果做断言或幂等重试。
+test('每条能力都声明了可复现性，且不可复现的说法进了工具描述', () => {
+  // 调用方最容易踩的坑就是拿一个不可复现的结果做断言或幂等重试。
   // 这件事只写在 SKILL.md 里不够 —— 装载 schema 的 Runtime 不一定读得到那份文档。
   const data = schema();
-  for (const entry of data.catalog.filter((c) => c.argv[0] === 'cast')) {
-    assert.equal(entry.reproducibility, 'not-reproducible', `${entry.name} 的可复现性标注不对`);
+  const keys = ['deterministic', 'conditional', 'not-reproducible'];
+
+  for (const entry of data.catalog) {
+    assert.equal(
+      keys.includes(entry.reproducibility),
+      true,
+      `${entry.name} 的可复现性是 ${entry.reproducibility} —— 能力命令必须声明它`
+    );
     const tool = data.tools.find((t) => t.name === entry.name);
-    assert.match(tool.description, /不保证同样的输出/);
+    assert.match(tool.description, /可复现性：/, `${entry.name} 的描述里没有可复现性说明`);
+    if (entry.reproducibility === 'not-reproducible') {
+      assert.match(tool.description, /不同|不保证/, `${entry.name} 没说清结果不可复现`);
+    }
   }
-  for (const entry of data.catalog.filter((c) => c.argv[0] === 'calc')) {
-    assert.equal(entry.reproducibility, 'deterministic-with-explicit-inputs');
+
+  // 按子树一刀切标注是这份数据最早的形态，两个方向都错过，所以两个方向都钉住：
+  const daily = data.catalog.find((c) => c.name === 'bazi_calc_daily');
+  assert.equal(daily.reproducibility, 'not-reproducible', 'daily 没有日期参数，恒取引擎当日');
+  const iching = data.catalog.find((c) => c.name === 'bazi_cast_iching');
+  assert.equal(iching.reproducibility, 'conditional', '给定数字起卦是确定性的，不能标成恒不可复现');
+});
+
+test('conditional 必须说清条件，且 requires 指向真实存在的选项', () => {
+  const root = tree();
+  const data = schema(['--scope', 'all']);
+  for (const entry of data.catalog.filter((c) => c.reproducibility === 'conditional')) {
+    const tool = data.tools.find((t) => t.name === entry.name);
+    assert.match(
+      tool.description,
+      /可复现性：.+/,
+      `${entry.name} 标了 conditional 却没说明什么情况下才确定`
+    );
+    for (const name of entry.reproducibilityRequires || []) {
+      const node = resolveInTree(root, entry.argv);
+      assert.equal(
+        (node.flags || []).some((f) => f.name === name),
+        true,
+        `${entry.name} 的 requires 提到 --${name}，但这条命令没有这个选项`
+      );
+    }
+  }
+});
+
+test('每条可执行命令都声明了副作用', () => {
+  // 缺了会怎样：上层的安全拦截读不到等级，只能按"未知"处理 —— 要么全放行，
+  // 要么全拦，两种都会让这道闸失去意义。所以这是硬门禁，不是文档建议。
+  const effects = ['read-only', 'local-write', 'destructive'];
+  for (const entry of schema(['--scope', 'all']).catalog) {
+    assert.equal(
+      effects.includes(entry.effect),
+      true,
+      `${entry.name} 的 effect 是 ${entry.effect} —— 新增命令必须声明 effect（见 registry.mjs 的 EFFECTS）`
+    );
+  }
+});
+
+test('MCP 的 readOnly / destructive 提示与声明的副作用一致', () => {
+  const data = schema(['--scope', 'all', '--format', 'mcp']);
+  const byName = new Map(data.catalog.map((c) => [c.name, c]));
+  for (const tool of data.tools) {
+    const entry = byName.get(tool.name);
+    const annotations = tool.annotations || {};
+    assert.equal(
+      annotations.readOnlyHint === true,
+      entry.effect === 'read-only',
+      `${tool.name} 的 readOnlyHint 与 effect=${entry.effect} 不符 —— 安全拦截读的就是这个字段`
+    );
+    assert.equal(annotations.destructiveHint === true, entry.effect === 'destructive');
+  }
+});
+
+test('会写东西的命令，描述里必须写明它会写', () => {
+  // 只进 MCP 的 annotations 不够：anthropic / openai 两种格式没有放 annotation 的地方，
+  // 模型能看到的只有 description。
+  const data = schema(['--scope', 'ops']);
+  for (const entry of data.catalog.filter((c) => c.effect !== 'read-only')) {
+    const tool = data.tools.find((t) => t.name === entry.name);
+    assert.match(
+      tool.description,
+      /副作用|破坏性操作/,
+      `${entry.name} 会改本机状态，但描述里只字未提`
+    );
   }
 });
 
