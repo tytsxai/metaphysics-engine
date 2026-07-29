@@ -9,7 +9,7 @@ body:
         提之前先跑一下 `./bazi doctor --json` —— 环境类问题它多半会直接告诉你答案，
         并给出可以粘贴执行的修复命令。
 
-        **安全漏洞不要开公开 issue**，见 [SECURITY.md](https://github.com/tytsxai/bazi-master/blob/main/SECURITY.md)。
+        **安全漏洞不要开公开 issue**，见 [SECURITY.md](https://github.com/tytsxai-stack/metaphysics-engine/blob/main/SECURITY.md)。
 
   - type: dropdown
     id: area

@@ -12,7 +12,7 @@ body:
         - **算错了**（三传漏宗门、纳甲干支排错）→ 是 bug，我们修
         - **流派不同**（闰月归本月 vs 折半、晚子时换不换日）→ 不是 bug，我们就地注明口径，不改默认
 
-        已知的口径选择逐条写在 [.claude/skills/bazi-cli/SKILL.md](https://github.com/tytsxai/bazi-master/blob/main/.claude/skills/bazi-cli/SKILL.md)，
+        已知的口径选择逐条写在 [.claude/skills/bazi-cli/SKILL.md](https://github.com/tytsxai-stack/metaphysics-engine/blob/main/.claude/skills/bazi-cli/SKILL.md)，
         请先扫一眼，可能你遇到的正是一个已注明的流派选择。
 
   - type: dropdown

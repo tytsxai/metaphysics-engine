@@ -22,7 +22,7 @@ deliberately left to the caller, with every ingredient an interpretation needs e
 
 ## Canonical Repository
 
-- GitHub: https://github.com/tytsxai/bazi-master
+- GitHub: https://github.com/tytsxai-stack/metaphysics-engine
 - License: MIT (fork, modify, self-host, and commercial use are permitted; compliance and disclaimers are the deployer's responsibility)
 - Version: 0.2.0
 - Status: Self-hostable, stateless calculation service for developers and AI agents

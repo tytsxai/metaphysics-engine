@@ -74,8 +74,8 @@
 ## 最快如何本地启动？
 
 ```bash
-git clone https://github.com/tytsxai/bazi-master.git
-cd bazi-master
+git clone https://github.com/tytsxai-stack/metaphysics-engine.git
+cd metaphysics-engine
 
 ./bazi setup     # 装依赖 + 生成 .env
 ./bazi doctor    # 环境体检
@@ -146,7 +146,7 @@ MIT 许可证，允许 fork、修改、闭源分发和商业使用。
 只会安静地给出一张错盘——三传取法、安星链条、拆补定局、节气交接的时刻精度都是如此。
 
 报告口径问题请用
-[排盘口径模板](https://github.com/tytsxai/bazi-master/issues/new?template=algorithm_discrepancy.yml)，
+[排盘口径模板](https://github.com/tytsxai-stack/metaphysics-engine/issues/new?template=algorithm_discrepancy.yml)，
 带上完整输入、当前输出、你认为正确的输出，以及**依据的典籍或流派**（最后这条最关键）。
 
 代码方向的切入点、加一门新术数要动哪几处、PR 检查清单见

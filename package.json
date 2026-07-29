@@ -5,13 +5,13 @@
   "description": "Self-hostable, stateless Chinese metaphysics calculation engine — BaZi, Zi Wei Dou Shu, Liu Yao, Da Liu Ren, Qi Men Dun Jia, Ba Zhai feng shui, almanac, name grids, Tarot, I Ching, Zodiac and Synastry — exposed as a documented HTTP API and an agent-callable programmatic CLI.",
   "license": "MIT",
   "author": "tytsxai",
-  "homepage": "https://github.com/tytsxai/bazi-master#readme",
+  "homepage": "https://github.com/tytsxai-stack/metaphysics-engine#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tytsxai/bazi-master.git"
+    "url": "git+https://github.com/tytsxai-stack/metaphysics-engine.git"
   },
   "bugs": {
-    "url": "https://github.com/tytsxai/bazi-master/issues"
+    "url": "https://github.com/tytsxai-stack/metaphysics-engine/issues"
   },
   "engines": {
     "node": ">=20",

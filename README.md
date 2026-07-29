@@ -1,18 +1,19 @@
-# BaZi Master · 八字与多模态玄学计算引擎 / Open-Source Divination Calculation API
+# Metaphysics Engine · 术数算法能力层
 
-[![CI](https://github.com/tytsxai/bazi-master/actions/workflows/ci.yml/badge.svg)](https://github.com/tytsxai/bazi-master/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/tytsxai/bazi-master)](https://github.com/tytsxai/bazi-master/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Private](https://img.shields.io/badge/repo-private-lightgrey.svg)](#)
 
-[English README](README.en.md) · [llms.txt](llms.txt) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/tytsxai/bazi-master/issues)
+[English README](README.en.md) · [llms.txt](llms.txt) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [开发约定](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
-BaZi Master 是一个开源的命理计算引擎，把中国传统术数的排盘能力——八字（BaZi）、紫微斗数（Zi Wei Dou Shu）、六爻纳甲（Liu Yao）、大六壬（Da Liu Ren）、奇门遁甲（Qi Men Dun Jia）、八宅风水（Ba Zhai）、择吉（almanac）、姓名五格——连同塔罗、周易起卦、星座与上升星座、合盘分析和 AI 解读，收敛成一套文档化的 HTTP API 和一个面向 Agent 的程序化 CLI。
+> 本仓库为私有能力层。带 React 前端的 Web 全栈社区版停留在
+> [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master) 的 `v0.2.0` 一线，功能冻结，
+> 与本仓库的算法口径、CLI 能力与 MCP 接入互不同步。
+
+Metaphysics Engine 是一个私有的命理计算引擎，把中国传统术数的排盘能力——八字（BaZi）、紫微斗数（Zi Wei Dou Shu）、六爻纳甲（Liu Yao）、大六壬（Da Liu Ren）、奇门遁甲（Qi Men Dun Jia）、八宅风水（Ba Zhai）、择吉（almanac）、姓名五格——连同塔罗、周易起卦、星座与上升星座、合盘分析和 AI 解读，收敛成一套文档化的 HTTP API 和一个面向 Agent 的程序化 CLI。
 
 它是**算法能力层**，不是网页应用，也不服务 C 端用户：界面、账号、持久化都属于调用方。引擎本身是无状态纯计算——不存数据、不认用户、没有数据库。
 
-English summary: **BaZi Master is an open-source divination calculation engine** covering the traditional Chinese canon — BaZi, Zi Wei Dou Shu, Liu Yao (King Fang stem-branch attachment), Da Liu Ren, Qi Men Dun Jia, Ba Zhai feng shui, almanac day-selection and name grids — plus Tarot, I Ching, Zodiac and Synastry. Exposed as a documented HTTP API and an agent-callable CLI. Stateless pure calculation — no database, no accounts, no UI. Node.js / Express, optional Redis cache, pluggable AI providers, OpenAPI contract.
+English summary: **Metaphysics Engine is a private divination calculation engine** covering the traditional Chinese canon — BaZi, Zi Wei Dou Shu, Liu Yao (King Fang stem-branch attachment), Da Liu Ren, Qi Men Dun Jia, Ba Zhai feng shui, almanac day-selection and name grids — plus Tarot, I Ching, Zodiac and Synastry. Exposed as a documented HTTP API and an agent-callable CLI. Stateless pure calculation — no database, no accounts, no UI. Node.js / Express, optional Redis cache, pluggable AI providers, OpenAPI contract.
 
 > 关键词 / Keywords: 八字排盘 API, BaZi chart API, 紫微斗数排盘, Zi Wei Dou Shu chart, 六爻纳甲 API, Liu Yao hexagram API, 大六壬起课, Da Liu Ren API, 奇门遁甲排盘, Qi Men Dun Jia API, 八宅风水, feng shui API, 择吉黄历 API, Chinese almanac API, 姓名五格, 塔罗抽牌 API, Tarot draw API, 周易起卦 API, I Ching divination API, 星座配对, astrology compatibility, 合盘分析 Synastry, stateless calculation engine, agent tools, AI divination backend.
 
@@ -22,7 +23,7 @@ English summary: **BaZi Master is an open-source divination calculation engine**
 
 | 维度         | 说明                                                                                     |
 | ------------ | ---------------------------------------------------------------------------------------- |
-| 项目类型     | 开源玄学 / 占星 / 命理**算法能力层**，以自部署 HTTP API + 程序化 CLI 交付                |
+| 项目类型     | 玄学 / 占星 / 命理**算法能力层**（私有），以自部署 HTTP API + 程序化 CLI 交付                |
 | 解决问题     | 把命理算法里那些「写错也不会报错」的语义边界做成可测试、有契约、可被程序调用的能力       |
 | 适合谁       | 要给产品接命理计算的后端开发者，以及要给 AI Agent 接一个真实排盘工具的团队               |
 | 消费方式     | 直接调 HTTP API；用 `./bazi calc` / `./bazi cast`；或作为 agent tool 接入                |
@@ -89,8 +90,8 @@ English summary: **BaZi Master is an open-source divination calculation engine**
 ### 用 `./bazi`（推荐）
 
 ```bash
-git clone https://github.com/tytsxai/bazi-master.git
-cd bazi-master
+git clone https://github.com/tytsxai-stack/metaphysics-engine.git
+cd metaphysics-engine
 
 ./bazi setup     # 装依赖 + 生成 .env
 ./bazi doctor    # 体检环境，每项失败都带可执行的修复命令
@@ -104,8 +105,8 @@ cd bazi-master
 ### 手动步骤
 
 ```bash
-git clone https://github.com/tytsxai/bazi-master.git
-cd bazi-master
+git clone https://github.com/tytsxai-stack/metaphysics-engine.git
+cd metaphysics-engine
 
 npm install
 npm -C backend install
@@ -389,6 +390,3 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 
 MIT License. See [LICENSE](LICENSE).
 
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=tytsxai/bazi-master&type=Date)](https://www.star-history.com/#tytsxai/bazi-master&Date)

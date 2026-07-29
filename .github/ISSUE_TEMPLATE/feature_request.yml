@@ -12,7 +12,7 @@ body:
 
         这几类改动通常不会被接受，但欢迎讨论：塞前端 / 加回账号与数据库 /
         硬编码断语 / 为迎合某一流派改默认口径。详见
-        [CONTRIBUTING.md](https://github.com/tytsxai/bazi-master/blob/main/CONTRIBUTING.md)。
+        [CONTRIBUTING.md](https://github.com/tytsxai-stack/metaphysics-engine/blob/main/CONTRIBUTING.md)。
 
   - type: dropdown
     id: kind

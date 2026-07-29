@@ -5,7 +5,7 @@
 **请不要开公开 issue。**
 
 请通过 GitHub 的
-[Private vulnerability reporting](https://github.com/tytsxai/bazi-master/security/advisories/new)
+[Private vulnerability reporting](https://github.com/tytsxai-stack/metaphysics-engine/security/advisories/new)
 私下提交（仓库 Security 标签页）。请附上受影响的版本或 commit、复现步骤、以及你判断的影响面。
 
 这是一个个人维护的开源项目，没有 SLA。会尽快确认并处理，修复后在

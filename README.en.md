@@ -1,14 +1,16 @@
-# BaZi Master — Open-Source Divination Calculation API
+# Metaphysics Engine — Divination Calculation Capability Layer
 
-[![CI](https://github.com/tytsxai/bazi-master/actions/workflows/ci.yml/badge.svg)](https://github.com/tytsxai/bazi-master/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/tytsxai/bazi-master)](https://github.com/tytsxai/bazi-master/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Private](https://img.shields.io/badge/repo-private-lightgrey.svg)](#)
 
-[简体中文 README](README.md) · [llms.txt](llms.txt) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Issues](https://github.com/tytsxai/bazi-master/issues)
+[简体中文 README](README.md) · [llms.txt](llms.txt) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Conventions](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
-**BaZi Master is an open-source, self-hostable calculation engine for Chinese metaphysics and
+> This is the private capability layer. The Web full-stack community edition with the
+> React frontend is frozen at `v0.2.0` in
+> [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master); its algorithm rulings,
+> CLI surface and MCP integration do not track this repository.
+
+**Metaphysics Engine is a private, self-hostable calculation engine for Chinese metaphysics and
 astrology**, exposed as a documented HTTP API and an agent-callable CLI. It covers the traditional
 Chinese canon — BaZi (八字排盘), Zi Wei Dou Shu (紫微斗数), Liu Yao stem-branch attachment
 (六爻纳甲), Da Liu Ren (大六壬), Qi Men Dun Jia (奇门遁甲), Ba Zhai feng shui (八宅), almanac
@@ -26,7 +28,7 @@ client you build, or wire it into an AI agent as a tool.
 
 | Field               | Answer                                                                                                                        |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Project type        | Open-source divination / astrology **calculation capability layer**, delivered as a self-hosted HTTP API + CLI                |
+| Project type        | Private divination / astrology **calculation capability layer**, delivered as a self-hosted HTTP API + CLI                |
 | Problem solved      | Turns the silent-failure edge cases of these algorithms into a tested, contract-backed, callable capability                   |
 | Who it is for       | Backend developers adding metaphysics calculation to their own product; teams giving an AI agent a real tool                  |
 | Runtime shape       | **Stateless pure calculation** — no database, no accounts, no sessions, no file writes                                        |
@@ -115,8 +117,8 @@ touches one location.
 Prerequisites: **Node.js 20+ and npm**. No Docker, no database, no Redis.
 
 ```bash
-git clone https://github.com/tytsxai/bazi-master.git
-cd bazi-master
+git clone https://github.com/tytsxai-stack/metaphysics-engine.git
+cd metaphysics-engine
 
 ./bazi setup     # install dependencies, generate .env
 ./bazi doctor    # environment check; every failure prints an executable fix
