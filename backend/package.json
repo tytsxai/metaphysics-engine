@@ -32,7 +32,8 @@
     "dev": "node server.js",
     "start": "node scripts/start.mjs",
     "test": "node --test --test-concurrency=1 test/*.test.js",
-    "test:coverage": "node --experimental-test-coverage --test --test-concurrency=1 test/*.test.js"
+    "test:coverage": "node --experimental-test-coverage --test-coverage-exclude=test/** --test --test-concurrency=1 test/*.test.js",
+    "test:coverage:gate": "node --experimental-test-coverage --test-coverage-exclude=test/** --test-coverage-lines=91 --test-coverage-branches=82 --test-coverage-functions=90 --test --test-concurrency=1 test/*.test.js"
   },
   "dependencies": {
     "@sentry/node": "^10.32.1",

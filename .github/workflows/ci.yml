@@ -82,6 +82,25 @@ jobs:
           cd backend
           NODE_ENV=test npm test
 
+      # A coverage script with no threshold is a report nobody reads. The gate is what
+      # turns it into a signal: it fails the build when coverage drops below the floor.
+      # Thresholds sit a couple of points under the current numbers (92.65 / 83.62 / 91.43)
+      # so ordinary churn does not go red, but a real regression does.
+      #
+      # 22.x only: `--test-coverage-lines` and friends landed in Node 22.8. On the 20.x leg
+      # they are unknown options and the process exits before running a single test — which
+      # would look like a test failure rather than an unsupported flag. The suite itself
+      # still runs on both legs above; only the gate is version-gated.
+      #
+      # `--test-coverage-exclude=test/**` matters more than it looks: counting the test
+      # files themselves pulls the total up by ~3 points (95.45 vs 92.65 lines), so without
+      # it the gate would be measuring the tests' own coverage of themselves.
+      - name: Enforce backend coverage thresholds
+        if: matrix.node-version == '22.x'
+        run: |
+          cd backend
+          NODE_ENV=test npm run test:coverage:gate
+
       # The CLI is how every workflow in this repo is driven, so a break in it blocks
       # all of them. Its own contract tests are fast and need no services.
       - name: Run CLI Contract Tests
