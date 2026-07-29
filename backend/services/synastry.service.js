@@ -23,18 +23,34 @@ import { detectBranchRelations, getNayin } from './ganzhi.service.js';
  */
 const WEIGHTS = {
   dayBranchSixCombination: 30,
-  dayBranchTripleCombination: 25,
   dayBranchHalfCombination: 15,
   dayBranchClash: -20,
   dayBranchPunishment: -15,
   dayBranchHarm: -10,
+  dayBranchDestruction: -8,
   dayMasterGenerates: 25,
   dayMasterSame: 18,
   dayMasterControls: 8,
   crossPillarCombination: 5,
   crossPillarClash: -5,
+  crossPillarDiscord: -3,
   elementComplement: 10,
 };
+
+/**
+ * 夫妻宫两支之间可能成立的全部关系。
+ *
+ * 这里**不含三合**：三合要三支才成局，两个人的日支之间无论如何凑不出来，
+ * 挂一条三合权重只会让人以为引擎考虑了它。两支能成的是半合，已单列。
+ */
+const SPOUSE_RELATION_WEIGHTS = [
+  { source: 'sixCombinations', type: 'sixCombination', weight: 'dayBranchSixCombination' },
+  { source: 'halfCombinations', type: 'halfCombination', weight: 'dayBranchHalfCombination' },
+  { source: 'clashes', type: 'clash', weight: 'dayBranchClash' },
+  { source: 'punishments', type: 'punishment', weight: 'dayBranchPunishment' },
+  { source: 'harms', type: 'harm', weight: 'dayBranchHarm' },
+  { source: 'destructions', type: 'destruction', weight: 'dayBranchDestruction' },
+];
 
 const PILLARS = ['year', 'month', 'day', 'hour'];
 
@@ -53,29 +69,16 @@ const analyzeSpousePalace = (branchA, branchB) => {
   const relations = detectBranchRelations([branchA, branchB]);
   const found = [];
 
-  relations.sixCombinations.forEach((c) =>
-    found.push({
-      type: 'sixCombination',
-      cn: c.cn,
-      transform: c.transform,
-      weight: WEIGHTS.dayBranchSixCombination,
-    })
-  );
-  relations.tripleCombinations.forEach((c) =>
-    found.push({ type: 'tripleCombination', cn: c.cn, weight: WEIGHTS.dayBranchTripleCombination })
-  );
-  relations.halfCombinations.forEach((c) =>
-    found.push({ type: 'halfCombination', cn: c.cn, weight: WEIGHTS.dayBranchHalfCombination })
-  );
-  relations.clashes.forEach((c) =>
-    found.push({ type: 'clash', cn: c.cn, weight: WEIGHTS.dayBranchClash })
-  );
-  relations.punishments.forEach((p) =>
-    found.push({ type: 'punishment', cn: p.cn, weight: WEIGHTS.dayBranchPunishment })
-  );
-  relations.harms.forEach((h) =>
-    found.push({ type: 'harm', cn: h.cn, weight: WEIGHTS.dayBranchHarm })
-  );
+  SPOUSE_RELATION_WEIGHTS.forEach(({ source, type, weight }) => {
+    (relations[source] || []).forEach((relation) =>
+      found.push({
+        type,
+        cn: relation.cn,
+        ...(relation.transform ? { transform: relation.transform } : {}),
+        weight: WEIGHTS[weight],
+      })
+    );
+  });
 
   return {
     branchA,
@@ -112,18 +115,39 @@ const analyzeDayMasters = (stemA, stemB) => {
   };
 };
 
-/** 四柱交叉：A 的每一柱地支与 B 的每一柱地支之间的合与冲。 */
+/**
+ * 四柱交叉：A 的每一柱地支与 B 的每一柱地支之间的关系。
+ *
+ * **跳过日支与日支那一对** —— 它是夫妻宫，已由 analyzeSpousePalace 按主位权重
+ * 单独计过。不跳过的话同一个六合会被计两次分（30 分 + 5 分），日支关系越强，
+ * 分数虚高得越多。
+ */
+const CROSS_RELATION_KINDS = [
+  { source: 'sixCombinations', type: 'sixCombination', weight: 'crossPillarCombination' },
+  { source: 'halfCombinations', type: 'halfCombination', weight: 'crossPillarCombination' },
+  { source: 'clashes', type: 'clash', weight: 'crossPillarClash' },
+  { source: 'punishments', type: 'punishment', weight: 'crossPillarDiscord' },
+  { source: 'harms', type: 'harm', weight: 'crossPillarDiscord' },
+  { source: 'destructions', type: 'destruction', weight: 'crossPillarDiscord' },
+];
+
 const analyzeCrossPillars = (charsA, charsB) => {
   const found = [];
   charsA.forEach((a) => {
     charsB.forEach((b) => {
+      if (a.position === 'day' && b.position === 'day') return;
       const relations = detectBranchRelations([a.branch, b.branch]);
-      relations.sixCombinations.forEach((c) =>
-        found.push({ a: a.position, b: b.position, type: 'sixCombination', cn: c.cn })
-      );
-      relations.clashes.forEach((c) =>
-        found.push({ a: a.position, b: b.position, type: 'clash', cn: c.cn })
-      );
+      CROSS_RELATION_KINDS.forEach(({ source, type, weight }) => {
+        (relations[source] || []).forEach((relation) =>
+          found.push({
+            a: a.position,
+            b: b.position,
+            type,
+            cn: relation.cn,
+            weight: WEIGHTS[weight],
+          })
+        );
+      });
     });
   });
   return found;
@@ -196,9 +220,10 @@ export const calculateCompatibility = (chartA, chartB) => {
   });
 
   crossPillars.forEach((relation) => {
-    score += relation.type === 'clash' ? WEIGHTS.crossPillarClash : WEIGHTS.crossPillarCombination;
+    score += relation.weight;
     insights.push({
       area: 'crossPillar',
+      type: relation.type,
       cn: `${relation.a}柱与对方${relation.b}柱${relation.cn}`,
     });
   });

@@ -82,16 +82,58 @@ describe('合盘按干支关系论', () => {
     assert.equal(result.elementComplement.source, 'weighted');
   });
 
-  it('交叉柱的合冲被列出，并指明是哪两柱', () => {
+  it('交叉柱的关系被列出，并指明是哪两柱', () => {
     const result = calculateCompatibility(
       chartOf(1990, 5, 20, 14),
       chartOf(1992, 8, 1, 9, 'female')
     );
+    const kinds = [
+      'sixCombination',
+      'halfCombination',
+      'clash',
+      'punishment',
+      'harm',
+      'destruction',
+    ];
     result.crossPillars.forEach((r) => {
       assert.ok(['year', 'month', 'day', 'hour'].includes(r.a));
       assert.ok(['year', 'month', 'day', 'hour'].includes(r.b));
-      assert.ok(['sixCombination', 'clash'].includes(r.type));
+      assert.ok(kinds.includes(r.type), `未知的交叉柱关系：${r.type}`);
+      assert.ok(Number.isFinite(r.weight), '每条交叉柱关系都要自带权重');
     });
+  });
+
+  it('日支那一对不进交叉柱，避免与夫妻宫重复计分', () => {
+    // 夫妻宫按主位权重单独计过，再算一遍会让日支关系越强、分数虚高越多
+    for (let year = 1970; year <= 2000; year += 3) {
+      const result = calculateCompatibility(
+        chartOf(year, 5, 20, 14),
+        chartOf(year + 2, 8, 1, 9, 'female')
+      );
+      const dayPair = result.crossPillars.filter((r) => r.a === 'day' && r.b === 'day');
+      assert.deepEqual(dayPair, [], `${year} 年样本把日支对重复计入了交叉柱`);
+    }
+  });
+
+  it('夫妻宫不出现三合——两支成不了三合局', () => {
+    for (let year = 1970; year <= 2000; year += 3) {
+      const result = calculateCompatibility(
+        chartOf(year, 5, 20, 14),
+        chartOf(year + 2, 8, 1, 9, 'female')
+      );
+      const triple = (result.spousePalace?.relations || []).filter(
+        (r) => r.type === 'tripleCombination'
+      );
+      assert.deepEqual(triple, [], '两支之间不该判出三合');
+    }
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(
+        calculateCompatibility(chartOf(1990, 5, 20, 14), chartOf(1992, 8, 1, 9, 'female')).weights,
+        'dayBranchTripleCombination'
+      ),
+      false,
+      '三合权重永不触发，不该留在口径表里'
+    );
   });
 
   it('评分落在 0..100，且权重口径随结果一并返回', () => {
