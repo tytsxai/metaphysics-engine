@@ -344,7 +344,7 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 | 补新术数     | 梅花易数、七政四余、小六壬等；先开 issue 说明取法依据                                                            |
 | 文档与翻译   | `README.en.md` / `llms.txt` 的英文表述，或补日语、繁体中文 README                                                |
 | Agent 接入   | `./bazi schema` 已能导出 anthropic / openai / mcp 三种 tool schema，欢迎补真实 Runtime 的接入示例                |
-| 生态客户端   | 前端、Bot、SDK 不进主仓，但欢迎开 issue 链接过来，我们放进生态列表                                               |
+| 生态客户端   | 前端、Bot、SDK 不进主仓，但欢迎开 issue 链接过来——攒够几个就在 README 里开一节列出来                             |
 
 报告口径问题时请分清两种情况——处理方式完全不同：**算错了**（三传漏宗门、纳甲干支排错）是 bug，
 直接修并补测试；**流派不同**（闰月归本月 vs 折半、晚子时换不换日）不是 bug，就地注明口径、

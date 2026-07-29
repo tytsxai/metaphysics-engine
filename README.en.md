@@ -255,7 +255,7 @@ Good entry points:
 | Adding a tradition                 | Plum Blossom, Xiao Liu Ren, and others — open an issue with the source first                              |
 | Docs and translation               | English phrasing in `README.en.md` / `llms.txt`, or a README in another language                          |
 | Agent integration                  | `./bazi schema` already exports anthropic / openai / mcp shapes; real runtime examples are welcome        |
-| Ecosystem clients                  | Frontends, bots, and SDKs stay out of this repo, but link yours in an issue and we list it                |
+| Ecosystem clients                  | Frontends, bots, and SDKs stay out of this repo — link yours in an issue and they get a README section    |
 
 When reporting a discrepancy, please distinguish **a bug** (objectively wrong — we fix it and add a
 test) from **a school difference** (leap-month handling, late-Zi rollover — we document the chosen
