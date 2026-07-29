@@ -283,7 +283,7 @@ error — a wrong assumption simply yields a different chart:
 
 - True solar time participates in charting by default, whenever the birth location resolves to a longitude and the timezone offset is known. Pass `trueSolarTime: false` to fall back to clock time. `chartTime.used` reports the instant actually charted; `chartTime.trueSolarTime.clockTime` preserves the original.
 - Because of that correction, `birthMinute` can change the hour pillar when the corrected instant crosses a two-hour branch boundary.
-- The location table holds 33 cities; an unrecognized name silently skips correction. Coordinate strings always work.
+- The location table holds 88 cities, each with a Chinese name and common aliases; names in Chinese, Japanese, and Korean scripts resolve. An unrecognized name skips correction without an error — `chartTime.locationResolution.status` (`resolved` / `unresolved` / `absent` / `disabled`) tells the three non-correcting cases apart, and `unresolved` also logs a warning. Coordinate strings always work.
 - The year pillar changes at 立春 (Start of Spring) and the month pillar at solar terms, both to the exact instant — on a boundary day the hour decides both.
 - Late-Zi hour (23:00–23:59) does not roll the day pillar, while the hour pillar already uses the next day's stem.
 - Leap months fold into the base month for Zi Wei charts.

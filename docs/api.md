@@ -249,10 +249,15 @@ curl -X POST http://127.0.0.1:4000/api/bazi/calculate \
 
 ### GET /api/locations
 
-真太阳时校正认得的地点表（33 个城市）。可选 `search` 查询参数做过滤。
+真太阳时校正认得的地点表（88 个城市，每条带中文名与常见别名）。
+可选 `search` 查询参数做过滤，中英文都能搜。
 
 表里没有的地名**不报错**，只是不做校正：响应里 `chartTime.trueSolarTime` 为 `null`，
 `chartTime.used` 就是原始钟表时间。排查「盘和预期差一柱」时先看这两个字段。
+
+要区分「没填地名」「显式关掉」「填了但认不出」这三种情况，看 `chartTime.locationResolution.status`
+（`absent` / `disabled` / `unresolved` / `resolved`）——只有 `unresolved` 需要调用方改输入，
+它同时会在服务端记一条 warn。判断校正是否生效的判据仍然是 `trueSolarTime`。
 
 要绕开这张表，直接给坐标串 `"30.27,120.15"`，这条路径永远可靠。
 
