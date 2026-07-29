@@ -27,8 +27,10 @@
       `null`）。真太阳时现在参与排盘了，这个静默跳过的代价比以前大 —— 要么扩表，
       要么让「认不出」在响应里更显眼。
 - [ ] 后端覆盖率门槛：`test:coverage` 存在但无阈值，CI 也没跑
-- [ ] Agent Benchmark 底座：拿 `calc` 的确定性建 golden case 集，量化成功率/步骤数/错误率。
-      `cast` 不可复现，不能进断言集
+- [ ] Agent Benchmark 底座：成功率 / 平均步骤数 / 错误率的量化。**确定性这一层已经有了**
+      （`bazi test engine` 会拿真实引擎验证每条声明可复现的命令连调两次一致，CI 里跑），
+      缺的是任务级的基准用例。注意可复现性是逐条命令声明的，不是按 `calc` / `cast` 分组：
+      `calc daily` 恒不可复现，`cast iching --numbers` 反而确定
 - [ ] 部署时按所用 LB 查表设 `SHUTDOWN_DRAIN_MS`：机制已实测（+2ms 摘流、
       误差 10ms 量级，见 PRODUCTION.md 的对照表），但默认 5000 只够 nginx 被动检查；
       换 k8s 要 35000、ALB 要 65000，且都要同步抬高 `stop_grace_period`

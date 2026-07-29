@@ -12,13 +12,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   MCP shape), so an agent runtime's tool registry can load this project's capabilities without
   reading `help --json` and translating it itself. Generated from the same tree the help
   command serves — there is no second, hand-written list to drift. Purely local; the engine
-  does not need to be running. Capability commands (`calc` / `cast`) only by default: the ops
-  commands mutate this repository and one of them is destructive, so they take an explicit
-  `--scope ops`. The `--json` envelope carries a `catalog` alongside the paste-ready `tools`,
-  mapping each property back to a flag or positional so a tool call can be turned into an
-  argv without guesswork. Reproducibility is stated in each tool's own description, because
-  the runtime loading the schema may never see the project's docs, and treating a `cast`
-  result as reproducible is the most common way to misuse this engine.
+  does not need to be running. Capability commands only by default: the ops commands mutate
+  this repository and one of them is destructive, so they take an explicit `--scope ops`.
+  The `--json` envelope carries a `catalog` alongside the paste-ready `tools`, mapping each
+  property back to a flag or positional so a tool call can be turned into an argv without
+  guesswork. Reproducibility is stated in each tool's own description, because the runtime
+  loading the schema may never see the project's docs, and treating a result that changes
+  between calls as a regression baseline is the most common way to misuse this engine.
+- **Every executable command declares a side effect; every capability declares its
+  reproducibility.** `effect` is one of `read-only`, `local-write` or `destructive`, and it is
+  the single source for MCP's `readOnlyHint` / `destructiveHint`, for the `[破坏性]` marker in
+  `--help`, and for the `destructive` boolean, which is now derived rather than written a
+  second time by hand. It is graded pessimistically: `doctor` is `local-write` because
+  `--fix` writes, even though the bare command only reads. Non-read-only commands also say so
+  in their description, since the Anthropic and OpenAI shapes have nowhere to put an
+  annotation. Both fields are inherited down the command tree, so a homogeneous subtree
+  declares once, and a contract test fails the build if any executable command leaves `effect`
+  unset — a permission check that reads "unknown" is a permission check that has stopped
+  working.
+- **`bazi test engine`** — a fourth test target that runs the capability commands against a
+  live engine and asserts that everything declared reproducible really is (two consecutive
+  calls, byte-identical output). This is the one piece of the exported metadata that can be
+  wrong without producing a symptom: a caller adopts a "deterministic" capability as a
+  regression baseline and finds out the next day. It is the only target that needs a running
+  engine, so it is recorded as `skipped` (not `failed`) when there is none — `--fail-on-skip`
+  turns that into a hard failure. CI starts an engine and runs it.
 - **Required parameters are now declared, not just enforced.** Commands used to check for
   missing arguments inside their `run` body, which made the requirement invisible to anything
   reading the command tree — an exported schema would have claimed every parameter was
@@ -116,6 +134,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   accordingly.
 
 ### Fixed
+
+- **The exported tool schema classified reproducibility by subtree, and was wrong in both
+  directions.** Everything under `calc` was labelled deterministic and everything under `cast`
+  not reproducible, which is a property of where a command sits in the tree rather than of what
+  it does. `calc daily` has no date parameter at all — its day pillar is always the engine's
+  today, so it can never be reproduced — yet it was advertised as a valid regression baseline.
+  In the other direction `cast iching --numbers` is pure calculation, and it is the only way to
+  get a repeatable hexagram, but the schema said the opposite. Reproducibility is now declared
+  per command in three grades (`deterministic`, `conditional`, `not-reproducible`), with
+  `conditional` required to state its condition and, where applicable, list the parameters that
+  make the result stable. `calc zodiac` is `conditional` too: `--horoscope` responses embed a
+  date range computed from the engine's clock.
+- **MCP's `readOnlyHint` was inferred from a command's category rather than read from a
+  declaration.** "It is a capability command, therefore it is read-only" happens to hold today
+  because the capability commands are pure calculation — but it is an inference, and the first
+  capability command that writes anything would have made the field lie, silently, to the
+  permission check that reads it. It is now derived from the declared `effect`, and the ops
+  commands that genuinely are read-only (`stack status`, `stack logs`, `env show`, `env check`,
+  `schema`, `help`) are finally labelled as such instead of being lumped in with the ones that
+  start processes and rewrite `.env`.
+- `bazi schema` had two tables of command names hard-coded in it, directly contradicting the
+  note in its own header that the file contains no command names. The practical cost was
+  silent: a newly added capability command would have defaulted to the ops category and simply
+  never appeared in the default export. Both are gone; the command tree is the only input.
 
 - **Da Liu Ren's 涉害 depth was computed along the wrong path and with the wrong tally.**
   Source material specifies walking _clockwise_ from the position the heaven-plate branch

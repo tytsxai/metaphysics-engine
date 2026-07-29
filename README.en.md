@@ -84,6 +84,10 @@ client you build, or wire it into an AI agent as a tool.
   supports `--json` and a documented exit-code contract, which makes it directly agent-callable.
   `./bazi schema` exports the command tree as tool definitions (Anthropic / OpenAI / MCP) for an
   agent runtime to register — generated from the same tree, so there is no second list to drift.
+  Every exported tool carries a declared side-effect level (`read-only` / `local-write` /
+  `destructive`, surfaced as MCP's `readOnlyHint` / `destructiveHint`) and a reproducibility
+  class — the first is what a permission check reads, the second decides whether a result can be
+  cached or used as a regression baseline.
 
 ### One boundary running through every capability: casting belongs to the engine, interpretation to the caller
 
@@ -110,7 +114,7 @@ cd bazi-master
 ./bazi setup     # install dependencies, generate .env
 ./bazi doctor    # environment check; every failure prints an executable fix
 ./bazi stack up  # start the engine
-./bazi test      # cli + lint + backend
+./bazi test      # cli + lint + backend + engine
 ```
 
 `./bazi help --json` is the single source of truth for the command list — this document
@@ -171,12 +175,15 @@ See [.env.example](.env.example) for development and
 ## Testing
 
 ```bash
-./bazi test                        # cli + lint + backend
+./bazi test                        # cli + lint + backend + engine
 ./bazi test --fail-on-skip --json  # for CI: a skipped target becomes a hard failure
 ```
 
-**Tests need no external services** — no database to provision, no containers to start. That is a
-direct consequence of the stateless design.
+**The first three targets need no external services** — no database to provision, no containers to
+start. That is a direct consequence of the stateless design. `engine` is the one exception: it runs
+the capability commands against a live engine to verify that the reproducibility declared in the
+exported tool schema actually holds (anything declared `deterministic` must return byte-identical
+output twice in a row). It is recorded as `skipped` when no engine is running.
 
 ## Production notes
 

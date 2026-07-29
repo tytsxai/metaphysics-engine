@@ -89,7 +89,7 @@ cd bazi-master
 ./bazi setup     # 装依赖 + 生成 .env
 ./bazi doctor    # 体检环境，每项失败都带可执行的修复命令
 ./bazi stack up  # 起引擎
-./bazi test      # 跑测试（cli + lint + backend）
+./bazi test      # 跑测试（cli + lint + backend + engine）
 ```
 
 所有命令都支持 `--json`，退出码有明确约定，方便脚本和 agent 调用。
@@ -156,6 +156,8 @@ curl -X POST http://127.0.0.1:4000/api/tarot/draw \
 
 起课类命令（`liuren` / `qimen` / `liuyao` / `almanac`）不给 `--date` 就取引擎当日，
 那一次调用**不可复现**，文本输出会标注出来。要可复现就把日期时辰给全。
+每条命令的可复现性都是声明出来的，`./bazi help <命令> --json` 的 `reproducibility`
+字段可查（`daily` 没有日期参数，恒不可复现；`cast iching --numbers` 反而是确定性的）。
 
 更多接口见 [docs/api.md](docs/api.md)。启动后也可以访问：
 
@@ -169,7 +171,10 @@ curl -X POST http://127.0.0.1:4000/api/tarot/draw \
 ./bazi schema --format openai > tools.json
 ```
 
-`--json` 模式还会附一份 catalog，说明每个参数拼成 argv 的哪一部分。要走 HTTP 而不是 CLI，
+`--json` 模式还会附一份 catalog，说明每个参数拼成 argv 的哪一部分，并给出每条工具的
+副作用等级（`read-only` / `local-write` / `destructive`，MCP 格式下同时是
+`readOnlyHint` / `destructiveHint`）与可复现性 —— 前者是做权限判断的依据，
+后者决定这条工具的结果能不能拿去做缓存或回归基准。要走 HTTP 而不是 CLI，
 用 `docs/openapi.json`；所有业务接口都无需鉴权。
 
 ## 适用场景 / Use Cases
@@ -267,15 +272,18 @@ bazi-master/
 ## 测试 / Testing
 
 ```bash
-./bazi test              # 全部目标：cli + lint + backend
+./bazi test              # 全部目标：cli + lint + backend + engine
 ./bazi test backend      # 只跑后端
 ./bazi test --fail-on-skip --json   # CI 用：有目标被跳过就退 3
 
 npm -C backend test      # 后端测试
 npm run test:cli         # CLI 自身的契约测试
+npm run test:engine      # 能力契约验证（要引擎在跑）
 ```
 
-**测试不需要任何外部服务**——没有数据库要准备，没有容器要起。这是无状态设计换来的直接好处。
+**前三个目标不需要任何外部服务**——没有数据库要准备，没有容器要起。这是无状态设计换来的直接好处。
+`engine` 是唯一的例外：它拿真实引擎验证导出的工具 schema 里声明的可复现性确实成立
+（声明 `deterministic` 的命令连调两次必须一字不差），引擎没起时记 `skipped`。
 
 > `bazi test` 的目标未就绪时会记 `skipped` 并照样返回 0。读 `summary.skipped`，别只看退出码。
 
