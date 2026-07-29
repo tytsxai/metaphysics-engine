@@ -135,6 +135,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Fixed
 
+- **The backend suite never ran on Node 20 in CI.** The test scripts passed a quoted glob
+  (`node --test "test/**/*.test.js"`); expanding that pattern is a Node 21+ feature, so on
+  Node 20 it is taken literally, the runner prints `Could not find …` and exits 1. The 20.x
+  leg of the CI matrix therefore reported a failure that looked like a broken suite and was
+  in fact a suite that had never started — and since `engines` declares `node >= 20`, the
+  oldest supported version was the one going unverified. All three scripts now pass a shell
+  glob instead, which every version expands identically; verified against a real Node 20.19
+  runtime (512 backend, 114 CLI, 11 engine tests all pass).
 - **The exported tool schema classified reproducibility by subtree, and was wrong in both
   directions.** Everything under `calc` was labelled deterministic and everything under `cast`
   not reproducible, which is a property of where a command sits in the tree rather than of what

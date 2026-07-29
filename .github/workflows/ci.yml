@@ -73,6 +73,10 @@ jobs:
           npm audit --omit=dev --audit-level=high
           npm --prefix backend audit --omit=dev --audit-level=high
 
+      # The test scripts pass a shell glob, not a quoted one. `node --test "dir/**/*.test.js"`
+      # only expands the pattern itself on Node 21+; on Node 20 it is taken literally, the
+      # runner reports "Could not find" and exits 1. That is exactly what happened here: the
+      # 20.x leg of this matrix never actually ran the backend suite.
       - name: Run Backend Tests
         run: |
           cd backend

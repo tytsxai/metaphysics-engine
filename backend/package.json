@@ -31,8 +31,8 @@
   "scripts": {
     "dev": "node server.js",
     "start": "node scripts/start.mjs",
-    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
-    "test:coverage": "node --experimental-test-coverage --test --test-concurrency=1 \"test/**/*.test.js\""
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "test:coverage": "node --experimental-test-coverage --test --test-concurrency=1 test/*.test.js"
   },
   "dependencies": {
     "@sentry/node": "^10.32.1",

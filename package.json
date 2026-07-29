@@ -48,8 +48,8 @@
     "bazi": "node tools/cli/bin/bazi.mjs",
     "test": "npm -C backend test",
     "test:backend": "npm -C backend test",
-    "test:cli": "node --test \"tools/cli/test/*.test.mjs\"",
-    "test:engine": "node --test \"tools/cli/test/engine/*.test.mjs\"",
+    "test:cli": "node --test tools/cli/test/*.test.mjs",
+    "test:engine": "node --test tools/cli/test/engine/*.test.mjs",
     "lint": "eslint . --ext .js,.mjs,.cjs",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
