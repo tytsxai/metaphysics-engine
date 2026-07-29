@@ -42,6 +42,7 @@ const ichingCommand = defineCommand({
     {
       name: 'method',
       type: 'string',
+      choices: ICHING_METHODS,
       summary: `起卦方式（${ICHING_METHODS.join(' / ')}），默认 number`,
     },
     {

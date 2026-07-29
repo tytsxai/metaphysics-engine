@@ -2,6 +2,7 @@ import { defineCommand } from '../core/registry.mjs';
 import { usageError } from '../core/errors.mjs';
 import {
   BIRTH_FLAGS,
+  GENDERS,
   buildBirthPayload,
   callApi,
   describeRequest,
@@ -190,11 +191,23 @@ const ziweiCommand = defineCommand({
 
 /** 合盘要两个人，所以出生信息那组 flag 得各来一份，不能复用 BIRTH_FLAGS。 */
 const SYNASTRY_FLAGS = [
-  { name: 'a', type: 'string', summary: '甲方出生时刻 YYYY-MM-DDTHH:mm' },
-  { name: 'a-gender', type: 'string', summary: '甲方性别（male / female）' },
+  { name: 'a', type: 'string', required: true, summary: '甲方出生时刻 YYYY-MM-DDTHH:mm' },
+  {
+    name: 'a-gender',
+    type: 'string',
+    required: true,
+    choices: GENDERS,
+    summary: `甲方性别（${GENDERS.join(' / ')}）`,
+  },
   { name: 'a-name', type: 'string', summary: '甲方称呼（可选，只用于结果标注）' },
-  { name: 'b', type: 'string', summary: '乙方出生时刻 YYYY-MM-DDTHH:mm' },
-  { name: 'b-gender', type: 'string', summary: '乙方性别（male / female）' },
+  { name: 'b', type: 'string', required: true, summary: '乙方出生时刻 YYYY-MM-DDTHH:mm' },
+  {
+    name: 'b-gender',
+    type: 'string',
+    required: true,
+    choices: GENDERS,
+    summary: `乙方性别（${GENDERS.join(' / ')}）`,
+  },
   { name: 'b-name', type: 'string', summary: '乙方称呼（可选，只用于结果标注）' },
   { name: 'timeout', type: 'number', summary: '请求超时毫秒数' },
 ];
@@ -211,17 +224,7 @@ const synastryCommand = defineCommand({
     },
   ],
   run: async ({ flags, out }) => {
-    for (const [flag, value] of [
-      ['--a', flags.a],
-      ['--b', flags.b],
-    ]) {
-      if (value === undefined) {
-        throw usageError(`缺少 ${flag}`, {
-          next: 'bazi calc synastry --a 1990-05-20T14:30 --a-gender male --b 1992-08-01T09:00 --b-gender female --json',
-        });
-      }
-    }
-
+    // --a / --b 的缺失由 SYNASTRY_FLAGS 的 required 统一拦下，这里只管格式。
     const personA = {
       ...parseBirth(flags.a, { flag: '--a' }),
       gender: parseGender(flags['a-gender'], { flag: '--a-gender' }),
@@ -287,6 +290,9 @@ const ZODIAC_CN = {
   pisces: '双鱼座',
 };
 
+/** 星座名的取值集合 —— 由中文名表推出来，不另立一份，免得两处分叉。 */
+const ZODIAC_SIGNS = Object.keys(ZODIAC_CN);
+
 /** 守护星、象征、宫性的中文名 —— 这些是界面元素，一律译出。 */
 const PLANET_CN = {
   Sun: '太阳',
@@ -327,11 +333,19 @@ const zodiacCommand = defineCommand({
   name: 'zodiac',
   summary: '西洋星座：星座信息或运势',
   usage: 'bazi calc zodiac <sign> [选项]',
-  args: [{ name: 'sign', required: true, summary: '星座名，如 aries / taurus / leo' }],
+  args: [
+    {
+      name: 'sign',
+      required: true,
+      choices: ZODIAC_SIGNS,
+      summary: '星座名，如 aries / taurus / leo',
+    },
+  ],
   flags: [
     {
       name: 'horoscope',
       type: 'string',
+      choices: ZODIAC_PERIODS,
       summary: `取运势而非星座信息（${ZODIAC_PERIODS.join(' / ')}）`,
     },
     { name: 'timeout', type: 'number', summary: '请求超时毫秒数' },
@@ -341,11 +355,7 @@ const zodiacCommand = defineCommand({
     { note: '查本周运势', command: 'bazi calc zodiac leo --horoscope weekly --json' },
   ],
   run: async ({ flags, positionals, out }) => {
-    const sign = positionals[0];
-    if (!sign) {
-      throw usageError('缺少星座名', { next: 'bazi calc zodiac leo --json' });
-    }
-
+    const sign = positionals[0]; // 缺失由 args 的 required 统一拦下
     const period = flags.horoscope;
     if (period !== undefined && !ZODIAC_PERIODS.includes(period)) {
       throw usageError(`--horoscope 只接受 ${ZODIAC_PERIODS.join(' / ')}，收到 "${period}"`, {
@@ -463,7 +473,12 @@ const liuyaoCommand = defineCommand({
     '装卦不是起卦：六爻由 --lines 给定，引擎只负责装。\n' +
     '起卦日决定六神与旬空，不给 --date 则取引擎当日。',
   flags: [
-    { name: 'lines', type: 'string', summary: '六爻，自初爻起，0 阴 1 阳，如 111111' },
+    {
+      name: 'lines',
+      type: 'string',
+      required: true,
+      summary: '六爻，自初爻起，0 阴 1 阳，如 111111',
+    },
     { name: 'changing', type: 'string', summary: '动爻位，逗号分隔，如 1,3（可选）' },
     ...CAST_DATE_FLAGS,
   ],
@@ -475,11 +490,6 @@ const liuyaoCommand = defineCommand({
     },
   ],
   run: async ({ flags, out }) => {
-    if (flags.lines === undefined) {
-      throw usageError('缺少 --lines', {
-        next: 'bazi calc liuyao --lines 111111 --json',
-      });
-    }
     const raw = String(flags.lines).trim();
     if (!/^[01]{6}$/.test(raw)) {
       throw usageError(`--lines 需要六位 0/1（自初爻起），收到 "${flags.lines}"`, {
@@ -641,8 +651,19 @@ const bazhaiCommand = defineCommand({
   summary: '八宅风水：本命卦与八方吉凶',
   description: '给了 --birth 就以立春为界定年 —— 正月初出生可能算作上一年，命卦因此不同。',
   flags: [
-    { name: 'birth', type: 'string', summary: '出生日期 YYYY-MM-DD 或仅年份 YYYY' },
-    { name: 'gender', type: 'string', summary: '性别（male / female）' },
+    {
+      name: 'birth',
+      type: 'string',
+      required: true,
+      summary: '出生日期 YYYY-MM-DD 或仅年份 YYYY',
+    },
+    {
+      name: 'gender',
+      type: 'string',
+      required: true,
+      choices: GENDERS,
+      summary: `性别（${GENDERS.join(' / ')}）`,
+    },
     { name: 'timeout', type: 'number', summary: '请求超时毫秒数' },
   ],
   examples: [
@@ -653,11 +674,6 @@ const bazhaiCommand = defineCommand({
     },
   ],
   run: async ({ flags, out }) => {
-    if (flags.birth === undefined) {
-      throw usageError('缺少 --birth', {
-        next: 'bazi calc bazhai --birth 1990 --gender male --json',
-      });
-    }
     const raw = String(flags.birth).trim();
     const full = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
     const yearOnly = raw.match(/^(\d{4})$/);
@@ -739,8 +755,18 @@ const nameCommand = defineCommand({
     '笔画数由你提供，引擎不内置字典 —— 康熙笔画与简体差异很大，部首另有独立算法\n' +
     '（「氵」按「水」计四画）。传的是笔画数不是汉字。',
   flags: [
-    { name: 'surname', type: 'string', summary: '姓的逐字笔画，逗号分隔，如 7 或 5,6' },
-    { name: 'given', type: 'string', summary: '名的逐字笔画，逗号分隔，如 8 或 8,9' },
+    {
+      name: 'surname',
+      type: 'string',
+      required: true,
+      summary: '姓的逐字笔画，逗号分隔，如 7 或 5,6',
+    },
+    {
+      name: 'given',
+      type: 'string',
+      required: true,
+      summary: '名的逐字笔画，逗号分隔，如 8 或 8,9',
+    },
     { name: 'timeout', type: 'number', summary: '请求超时毫秒数' },
   ],
   examples: [
@@ -749,9 +775,6 @@ const nameCommand = defineCommand({
   ],
   run: async ({ flags, out }) => {
     const parseStrokes = (value, flag) => {
-      if (value === undefined) {
-        throw usageError(`缺少 ${flag}`, { next: 'bazi calc name --surname 7 --given 8 --json' });
-      }
       const parts = String(value)
         .split(',')
         .map((s) => Number(s.trim()));
@@ -799,7 +822,12 @@ const dailyCommand = defineCommand({
     'score 只是按这些关系折算的粗略指标。',
   flags: [
     { name: 'birth', type: 'string', summary: '出生时刻 YYYY-MM-DDTHH:mm（可选）' },
-    { name: 'gender', type: 'string', summary: '性别（male / female），与 --birth 同进同退' },
+    {
+      name: 'gender',
+      type: 'string',
+      choices: GENDERS,
+      summary: `性别（${GENDERS.join(' / ')}），与 --birth 同进同退`,
+    },
     { name: 'timeout', type: 'number', summary: '请求超时毫秒数' },
   ],
   examples: [
@@ -856,9 +884,19 @@ const risingCommand = defineCommand({
     '需要经纬度与时区偏移 —— 上升星座对地点和时刻都敏感，差几分钟就可能换一个星座。\n' +
     '--location 只接受 "纬度,经度" 坐标串，这里不走八字那张城市表。',
   flags: [
-    { name: 'birth', type: 'string', summary: '出生时刻 YYYY-MM-DDTHH:mm' },
-    { name: 'location', type: 'string', summary: '"纬度,经度"，如 "39.90,116.40"' },
-    { name: 'tz-offset', type: 'number', summary: '时区偏移分钟数，东八区为 480' },
+    { name: 'birth', type: 'string', required: true, summary: '出生时刻 YYYY-MM-DDTHH:mm' },
+    {
+      name: 'location',
+      type: 'string',
+      required: true,
+      summary: '"纬度,经度"，如 "39.90,116.40"',
+    },
+    {
+      name: 'tz-offset',
+      type: 'number',
+      required: true,
+      summary: '时区偏移分钟数，东八区为 480',
+    },
     { name: 'timeout', type: 'number', summary: '请求超时毫秒数' },
   ],
   examples: [
@@ -869,11 +907,6 @@ const risingCommand = defineCommand({
     },
   ],
   run: async ({ flags, out }) => {
-    if (flags.birth === undefined) {
-      throw usageError('缺少 --birth', {
-        next: 'bazi calc rising --birth 1990-05-20T14:30 --location "39.90,116.40" --tz-offset 480 --json',
-      });
-    }
     const coords = String(flags.location || '').match(
       /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/
     );

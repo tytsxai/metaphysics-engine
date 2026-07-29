@@ -72,7 +72,7 @@ export const testCommand = defineCommand({
   summary: '跑测试（cli / lint / backend）',
   description: '不带参数把三个目标全跑一遍。\n引擎无状态，测试不需要数据库或任何外部服务。',
   usage: 'bazi test [目标...] [-- 透传给底层的参数]',
-  args: [{ name: 'targets', summary: '要跑的目标', choices: Object.keys(TARGETS) }],
+  args: [{ name: 'targets', variadic: true, summary: '要跑的目标', choices: Object.keys(TARGETS) }],
   flags: [
     { name: 'bail', type: 'boolean', summary: '第一个失败就停，不跑后面的' },
     {

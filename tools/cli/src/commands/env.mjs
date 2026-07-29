@@ -200,13 +200,12 @@ export const envCommand = defineCommand({
       name: 'set',
       summary: '写入或更新一个键（保留注释与顺序）',
       usage: 'bazi env set KEY=VALUE [KEY=VALUE ...]',
-      args: [{ name: 'assignments', required: true, summary: 'KEY=VALUE 形式，可多个' }],
+      args: [
+        { name: 'assignments', required: true, variadic: true, summary: 'KEY=VALUE 形式，可多个' },
+      ],
+      examples: [{ note: '写入一个键', command: 'bazi env set OPENAI_API_KEY=sk-...' }],
       run: ({ positionals, flags, out }) => {
-        if (!positionals.length) {
-          throw usageError('至少给一个 KEY=VALUE', {
-            next: 'bazi env set OPENAI_API_KEY=sk-...',
-          });
-        }
+        // 「一个都没给」由 args 的 required 统一拦下，这里只管格式
         const updates = {};
         for (const item of positionals) {
           const eq = item.indexOf('=');

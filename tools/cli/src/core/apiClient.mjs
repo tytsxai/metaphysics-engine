@@ -252,14 +252,26 @@ export const buildBirthPayload = (flags, { requireGender = true } = {}) => {
   return payload;
 };
 
-/** 出生信息类命令共用的一组 flag 定义。 */
+/**
+ * 出生信息类命令共用的一组 flag 定义。
+ *
+ * birth / gender 标 required：buildBirthPayload 本来就两个都要（requireGender 默认真），
+ * 声明出来才能同时被 `--help`、`help --json` 和 `bazi schema` 看见。
+ */
 export const BIRTH_FLAGS = [
   {
     name: 'birth',
     type: 'string',
+    required: true,
     summary: '出生时刻 YYYY-MM-DDTHH:mm（时辰必填；分钟只影响真太阳时，不进四柱）',
   },
-  { name: 'gender', type: 'string', summary: `性别（${GENDERS.join(' / ')}）` },
+  {
+    name: 'gender',
+    type: 'string',
+    required: true,
+    choices: GENDERS,
+    summary: `性别（${GENDERS.join(' / ')}）`,
+  },
   {
     name: 'location',
     type: 'string',

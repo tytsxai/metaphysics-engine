@@ -50,6 +50,35 @@ export const resolveCommand = (root, argv) => {
 const flagSpecFor = (node, name) =>
   [...GLOBAL_FLAGS, ...(node.flags || [])].find((f) => f.name === name || f.alias === name);
 
+/** 第一条示例就是最好的 next —— 它必定可跑，capability 测试会逐条解析验证。 */
+const firstExample = (node) => {
+  const example = (node.examples || [])[0];
+  if (!example) return undefined;
+  return typeof example === 'string' ? example : example.command;
+};
+
+/**
+ * 必填校验：集中在这里，命令自己不再各写一遍 `if (flags.x === undefined) throw`。
+ *
+ * `required` 之所以必须是声明式的，是因为它有第二个读者：`bazi schema` 导出的
+ * agent tool schema 直接读这个字段。写在 run 里的检查它看不见 —— 那样导出的
+ * schema 会声称"什么都不必填"，调用方拿着它构造出必然失败的调用。
+ */
+const assertRequired = (node, flags, positionals) => {
+  const missing = [];
+  for (const spec of node.flags || []) {
+    if (spec.required && flags[spec.name] === undefined) missing.push(`--${spec.name}`);
+  }
+  (node.args || []).forEach((arg, index) => {
+    if (arg.required && positionals[index] === undefined) missing.push(`<${arg.name}>`);
+  });
+  if (!missing.length) return;
+  throw usageError(`缺少必填参数：${missing.join(' ')}`, {
+    next: firstExample(node),
+    details: { missing },
+  });
+};
+
 const coerce = (spec, raw) => {
   if (spec.type === 'number') {
     const value = Number(raw);
@@ -152,6 +181,9 @@ export const parseArgs = (node, rest) => {
     }
   }
 
+  // --help 要放行：否则 `bazi calc bazi --help` 会先炸在缺参上，帮助永远看不到。
+  if (!flags.help) assertRequired(node, flags, positionals);
+
   return { flags, positionals, passthrough };
 };
 
@@ -161,7 +193,9 @@ const flagLine = (spec) => {
   const alias = spec.alias ? `-${spec.alias}, ` : '    ';
   const value = spec.type === 'boolean' ? '' : ` <${spec.type === 'list' ? 'value…' : spec.type}>`;
   const left = `  ${alias}--${spec.name}${value}`;
-  return `${left.padEnd(34)}${spec.summary || ''}`;
+  const choices = spec.choices ? ` (${spec.choices.join('|')})` : '';
+  const mark = spec.required ? ' [必填]' : '';
+  return `${left.padEnd(34)}${spec.summary || ''}${choices}${mark}`;
 };
 
 export const renderHelp = (node, commandPath) => {
@@ -177,7 +211,9 @@ export const renderHelp = (node, commandPath) => {
   } else if (node.commands.length) {
     lines.push(`  ${full} <子命令> [选项]`);
   } else {
-    const argSig = node.args.map((a) => (a.required ? `<${a.name}>` : `[${a.name}]`)).join(' ');
+    const argSig = node.args
+      .map((a) => `${a.required ? `<${a.name}>` : `[${a.name}]`}${a.variadic ? '...' : ''}`)
+      .join(' ');
     lines.push(`  ${full} ${argSig} [选项]`.replace(/\s+/g, ' '));
   }
   lines.push('');
@@ -197,7 +233,8 @@ export const renderHelp = (node, commandPath) => {
     const width = Math.max(...node.args.map((a) => a.name.length)) + 2;
     for (const arg of node.args) {
       const choices = arg.choices ? ` (${arg.choices.join('|')})` : '';
-      lines.push(`  ${arg.name.padEnd(width)}${arg.summary || ''}${choices}`);
+      const mark = arg.required ? ' [必填]' : '';
+      lines.push(`  ${arg.name.padEnd(width)}${arg.summary || ''}${choices}${mark}`);
     }
     lines.push('');
   }

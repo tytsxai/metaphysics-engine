@@ -31,7 +31,7 @@ export const helpCommand = defineCommand({
     '不带参数输出顶层帮助；带命令路径输出那一条的帮助。\n' +
     '--json 额外附带退出码含义表，Agent 靠它把退出码翻译成下一步动作。',
   usage: 'bazi help [命令路径...] [--json]',
-  args: [{ name: 'command', summary: '命令路径，如 `help stack up`' }],
+  args: [{ name: 'command', variadic: true, summary: '命令路径，如 `help stack up`' }],
   examples: [
     { note: '拿到全部能力（Agent 首选）', command: 'bazi help --json' },
     { note: '只看某条命令', command: 'bazi help stack up' },
