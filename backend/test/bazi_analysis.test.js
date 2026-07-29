@@ -101,15 +101,51 @@ describe('藏干加权五行', () => {
     ELEMENTS.forEach((e) => assert.ok(weighted.scores[e] >= 0));
   });
 
-  it('月令加倍：同一组四柱，月支五行的分数高于把它当普通支时', () => {
+  it('月令加倍只加在月支上，月干不加倍', () => {
     const weighted = calculateWeightedElements(chart.pillars);
-    // 总分 = 天干 4 分 + 地支 4 分，其中月柱整体加倍 → 理论总分 10
-    assert.ok(Math.abs(weighted.total - 10) < 0.01, `总分应为 10，实得 ${weighted.total}`);
+    // 天干 4 × 1 分，年日时三支各 1 分，月支藏干整体 ×2 得 2 分 → 总分 9。
+    // 曾经是 10，因为月干也吃了当权系数 —— 当权的是月令提纲，月干没有这个待遇。
+    assert.ok(Math.abs(weighted.total - 9) < 0.01, `总分应为 9，实得 ${weighted.total}`);
   });
 
   it('与旧的个数统计口径不同（藏干确实参与了计算）', () => {
-    // 旧口径只数天干+地支本气各 1，总计 8；新口径为 10 且带小数权重
+    // 旧口径只数天干+地支本气各 1，总计 8；加权口径为 9 且带小数权重
     assert.notEqual(chart.analysis.weightedElements.total, 8);
+  });
+
+  it('总分恒为 9，与四柱内容无关', () => {
+    // 每个地支的藏干权重逐支归一到 1，所以总分只取决于「月支加倍」这一个系数。
+    // 若某支的权重表加错、和不为 1，这里会立刻暴露。
+    [
+      chartOf(1990, 5, 12, 10),
+      chartOf(1984, 2, 2, 3),
+      chartOf(2000, 11, 20, 22),
+      chartOf(1976, 8, 20, 15),
+      chartOf(1955, 1, 1, 0),
+    ].forEach((sample, i) => {
+      const { total } = calculateWeightedElements(sample.pillars);
+      assert.ok(Math.abs(total - 9) < 0.01, `样本 ${i + 1} 总分 ${total}，应为 9`);
+    });
+  });
+
+  it('通根带出本气/中气/余气之别，两派口径的原料都齐', () => {
+    const { strength } = chart.analysis;
+    assert.ok(Array.isArray(strength.seasonalRoots), '得令应给出月令同党藏干明细');
+    assert.equal(strength.hasSeasonalSupport, strength.seasonalRoots.length > 0);
+    assert.deepEqual(
+      strength.rootedIn,
+      strength.roots.map((entry) => entry.position),
+      'rootedIn 应与 roots 明细一致'
+    );
+    [...strength.seasonalRoots, ...strength.roots.flatMap((entry) => entry.roots)].forEach(
+      (root) => {
+        assert.ok(['strong', 'medium', 'weak'].includes(root.strength), `根的强弱缺失：${root.stem}`);
+        assert.ok(
+          strength.allyElements.includes(root.element),
+          `${root.stem} 不是同党，不该算作根`
+        );
+      }
+    );
   });
 });
 

@@ -31,7 +31,13 @@ import {
   SHENSHA_META,
 } from '../constants/shensha.js';
 
-/** 月令当权，力量加倍。这是扶抑法里最吃重的一个系数。 */
+/**
+ * 月令当权，力量加倍。这是扶抑法里最吃重的一个系数。
+ *
+ * 只加在**月支藏干**上。当权的是月令提纲，月干并不因坐在月柱而加倍 ——
+ * 它和年干时干一样各计一分。此前月干也吃了这个系数，实测会让 22% 的盘
+ * 旺衰判反，进而把用神喜忌整条链带偏。
+ */
 const MONTH_BRANCH_MULTIPLIER = 2;
 
 const STRONG_THRESHOLD = 0.55;
@@ -122,7 +128,10 @@ export const buildPillarDetails = (pillars, dayMasterStem) => {
 /**
  * 藏干加权五行力量。
  *
- * 天干各计 1 分；地支按藏干权重分配 1 分；月支整体 ×2（当令）。
+ * 四个天干各计 1 分；每个地支按藏干权重分配 1 分（本气独藏者本气即得满分，
+ * 三藏者 0.6/0.3/0.1，两藏者 0.7/0.3 —— 逐支归一，见 constants/ganzhi.js）；
+ * 月**支**的藏干再整体 ×2，因为月令当权。月干不加倍。
+ *
  * 返回原始分与归一化百分比，断旺衰用的是这里的分数，不是干支个数。
  */
 export const calculateWeightedElements = (pillars) => {
@@ -134,10 +143,11 @@ export const calculateWeightedElements = (pillars) => {
   ['year', 'month', 'day', 'hour'].forEach((position) => {
     const pillar = pillars[position];
     if (!pillar) return;
-    const multiplier = position === 'month' ? MONTH_BRANCH_MULTIPLIER : 1;
-    add(STEMS_MAP[pillar.charStem]?.element, 1 * multiplier);
+    // 当权的是月令提纲，只有月支藏干加倍；四个天干一律各计一分
+    const branchMultiplier = position === 'month' ? MONTH_BRANCH_MULTIPLIER : 1;
+    add(STEMS_MAP[pillar.charStem]?.element, 1);
     getHiddenStems(pillar.charBranch).forEach((hidden) => {
-      add(STEMS_MAP[hidden.stem]?.element, hidden.weight * multiplier);
+      add(STEMS_MAP[hidden.stem]?.element, hidden.weight * branchMultiplier);
     });
   });
 
@@ -177,19 +187,31 @@ export const determineStrength = (pillars, dayMasterStem) => {
   if (ratio > STRONG_THRESHOLD) level = 'strong';
   else if (ratio < WEAK_THRESHOLD) level = 'weak';
 
+  /**
+   * 通根的强弱按藏干的 role 分：本气为强根，中气为中根，余气为弱根。
+   * 「有根即算」与「唯本气才算」是两派，这里两种口径所需的原料都给出，
+   * 由调用方按所宗流派取用 —— 布尔值只表示「有没有根」。
+   */
+  const rootsOf = (branch) =>
+    getHiddenStems(branch)
+      .filter((hidden) => allyElements.includes(STEMS_MAP[hidden.stem]?.element))
+      .map((hidden) => ({
+        stem: hidden.stem,
+        element: STEMS_MAP[hidden.stem]?.element || null,
+        role: hidden.role,
+        strength: { primary: 'strong', middle: 'medium', residual: 'weak' }[hidden.role] || null,
+      }));
+
   // 得令：月支藏干中是否有日主的同党
   const monthBranch = pillars.month?.charBranch;
-  const monthHidden = getHiddenStems(monthBranch);
-  const hasSeasonalSupport = monthHidden.some((hidden) =>
-    allyElements.includes(STEMS_MAP[hidden.stem]?.element)
-  );
-  // 得地：年日时三支中有本气为同党者
-  const rootedIn = ['year', 'day', 'hour'].filter((position) => {
-    const branch = pillars[position]?.charBranch;
-    return getHiddenStems(branch).some((hidden) =>
-      allyElements.includes(STEMS_MAP[hidden.stem]?.element)
-    );
-  });
+  const seasonalRoots = rootsOf(monthBranch);
+  const hasSeasonalSupport = seasonalRoots.length > 0;
+
+  // 得地：年日时三支中通根者
+  const roots = ['year', 'day', 'hour']
+    .map((position) => ({ position, roots: rootsOf(pillars[position]?.charBranch) }))
+    .filter((entry) => entry.roots.length > 0);
+  const rootedIn = roots.map((entry) => entry.position);
 
   return {
     dayMaster: dayMasterStem,
@@ -201,7 +223,11 @@ export const determineStrength = (pillars, dayMasterStem) => {
     ratio: Math.round(ratio * 1000) / 1000,
     allyElements,
     hasSeasonalSupport,
+    /** 月令里的同党藏干及其强弱。空数组即失令。 */
+    seasonalRoots,
     rootedIn,
+    /** 年日时三支的通根明细，含本气/中气/余气之别。 */
+    roots,
   };
 };
 
