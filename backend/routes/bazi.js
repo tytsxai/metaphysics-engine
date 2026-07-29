@@ -57,14 +57,18 @@ const buildTimeMetaForPayload = (payload) => {
       }
     : null;
 
-  const locationResolution = describeLocationResolution(payload);
+  const locationResolution = describeLocationResolution({
+    ...payload,
+    timezoneOffsetMinutes: meta?.timezoneOffsetMinutes ?? null,
+  });
 
-  // 认不出出生地会静默改变排盘口径（退回钟表时间），调用方不一定看响应里的诊断字段。
-  // 记一条 warn，让「这个城市我们其实不认识」在运维侧也能被发现并补进表里。
-  if (locationResolution.status === 'unresolved') {
+  // 填了出生地却没能校正，会静默改变排盘口径（退回钟表时间），而调用方不一定去看
+  // 响应里的诊断字段。记一条 warn，让「这个城市我们其实不认识」「这个调用一直缺时区」
+  // 在运维侧也能被发现 —— 前者补进城市表，后者是调用方该修的。
+  if (['unresolved', 'no-timezone'].includes(locationResolution.status)) {
     logger.warn(
-      { birthLocation: locationResolution.input },
-      'birthLocation could not be resolved to a longitude; true solar time correction skipped'
+      { birthLocation: locationResolution.input, reason: locationResolution.status },
+      'true solar time correction skipped despite a birthLocation being supplied'
     );
   }
 

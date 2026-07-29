@@ -72,5 +72,8 @@
   },
   "bin": {
     "bazi": "tools/cli/bin/bazi.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0"
   }
 }

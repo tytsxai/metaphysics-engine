@@ -135,21 +135,9 @@ export function buildPillar(ganChar, zhiChar) {
  */
 export const resolveChartTime = (data) => {
   const minute = coerceInt(data.birthMinute) ?? 0;
-  const base = {
-    year: data.birthYear,
-    month: data.birthMonth,
-    day: data.birthDay,
-    hour: data.birthHour || 0,
-    minute,
-    trueSolarTime: null,
-    locationResolution: describeLocationResolution(data),
-  };
 
-  if (data.trueSolarTime === false) return base;
-
-  const location = resolveLocationCoordinates(data.birthLocation);
-  if (!location) return base;
-
+  // 时区先算出来 —— 诊断要报的是"校正的最终下场"，而缺时区同样会让校正落空。
+  // 先建诊断再算时区的话，一个查得到的地名会被报成 applied，而排盘用的其实是钟表时间。
   const meta = buildBirthTimeMeta({
     birthYear: data.birthYear,
     birthMonth: data.birthMonth,
@@ -159,6 +147,25 @@ export const resolveChartTime = (data) => {
     timezone: data.timezone,
     timezoneOffsetMinutes: data.timezoneOffsetMinutes,
   });
+
+  const base = {
+    year: data.birthYear,
+    month: data.birthMonth,
+    day: data.birthDay,
+    hour: data.birthHour || 0,
+    minute,
+    trueSolarTime: null,
+    locationResolution: describeLocationResolution({
+      ...data,
+      timezoneOffsetMinutes: meta?.timezoneOffsetMinutes ?? null,
+    }),
+  };
+
+  if (data.trueSolarTime === false) return base;
+
+  const location = resolveLocationCoordinates(data.birthLocation);
+  if (!location) return base;
+
   if (!Number.isFinite(meta?.timezoneOffsetMinutes)) return base;
 
   const corrected = computeTrueSolarTime({

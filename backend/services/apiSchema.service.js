@@ -150,16 +150,19 @@ export const buildOpenApiSpec = ({ baseUrl } = {}) => ({
       LocationResolution: {
         type: 'object',
         description:
-          '出生地解析的诊断。`trueSolarTime` 只说校正生没生效，说不了为什么 —— 没填出生地、' +
-          '显式关掉、填了但认不出，三种情况的 trueSolarTime 都是 null，只有 unresolved ' +
-          '需要调用方改输入。要判断校正是否生效仍看 trueSolarTime，这个字段是拿来排查的。',
+          '真太阳时校正的下场与原因。`trueSolarTime` 只说校正生没生效，说不了为什么 —— ' +
+          '没填出生地、显式关掉、填了但认不出、认出来了却没有时区可用，四种情况的 ' +
+          'trueSolarTime 都是 null，但只有后两种是调用方能改的。' +
+          '要判断校正是否生效仍看 trueSolarTime，这个字段是拿来排查的。',
         properties: {
           status: {
             type: 'string',
-            enum: ['resolved', 'unresolved', 'absent', 'disabled'],
+            enum: ['applied', 'unresolved', 'no-timezone', 'absent', 'disabled'],
             description:
-              'resolved 解析成功并已校正；unresolved 填了但认不出，本次按钟表时间排盘；' +
-              'absent 没填 birthLocation；disabled 调用方传了 trueSolarTime: false',
+              'applied 已校正并用于排盘；unresolved 填了但认不出；' +
+              'no-timezone 地名认得但缺时区偏移，标准经线算不出；' +
+              'absent 没填 birthLocation；disabled 调用方传了 trueSolarTime: false。' +
+              '除 applied 外都是按钟表时间排的盘。',
           },
           input: { type: 'string', nullable: true, description: '原样回显的 birthLocation' },
           matched: {
@@ -179,7 +182,7 @@ export const buildOpenApiSpec = ({ baseUrl } = {}) => ({
           hint: {
             type: 'string',
             nullable: true,
-            description: 'status 非 resolved 时给出的下一步；resolved 时为 null',
+            description: 'status 非 applied 时给出的下一步；applied 时为 null',
           },
         },
       },

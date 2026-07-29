@@ -154,18 +154,44 @@ describe('中文地名真的参与排盘', () => {
 });
 
 /**
- * `trueSolarTime: null` 把三种完全不同的情况压成了同一个值，其中只有 unresolved
- * 需要调用方改输入。locationResolution 就是用来把它们分开的。
+ * `trueSolarTime: null` 把几种完全不同的情况压成了同一个值，其中只有 unresolved
+ * 与 no-timezone 是调用方能改的。locationResolution 就是用来把它们分开的。
  */
-describe('出生地解析诊断', () => {
-  it('四种状态各自可辨', () => {
-    assert.equal(describeLocationResolution({ birthLocation: '北京' }).status, 'resolved');
+describe('真太阳时校正下场的诊断', () => {
+  it('五种状态各自可辨', () => {
+    assert.equal(describeLocationResolution({ birthLocation: '北京' }).status, 'applied');
     assert.equal(describeLocationResolution({ birthLocation: '火星城' }).status, 'unresolved');
     assert.equal(describeLocationResolution({}).status, 'absent');
     assert.equal(
       describeLocationResolution({ birthLocation: '北京', trueSolarTime: false }).status,
       'disabled'
     );
+    assert.equal(
+      describeLocationResolution({ birthLocation: '北京', timezoneOffsetMinutes: null }).status,
+      'no-timezone'
+    );
+  });
+
+  /**
+   * 地名查得到 ≠ 校正生效。没有时区偏移就算不出标准经线，排盘照样退回钟表时间 ——
+   * 一个只报"地名解析成功"的诊断字段会在这里亲手制造它本来要消除的那种静默。
+   */
+  it('地名认得但缺时区时报 no-timezone，而不是谎报已校正', () => {
+    const chart = performCalculation({
+      birthYear: 1990,
+      birthMonth: 5,
+      birthDay: 12,
+      birthHour: 10,
+      gender: 'male',
+      birthLocation: '乌鲁木齐',
+      // 不给 timezone / timezoneOffsetMinutes
+    });
+    assert.equal(chart.chartTime.locationResolution.status, 'no-timezone');
+    assert.equal(chart.chartTime.trueSolarTime, null, '缺时区时校正不该生效');
+    assert.equal(chart.chartTime.used.hour, 10, '应退回钟表时间');
+    assert.match(chart.chartTime.locationResolution.hint, /timezone/);
+    // 认出来了这件事仍然要说，否则调用方会以为是地名写错了
+    assert.equal(chart.chartTime.locationResolution.matched.cn, '乌鲁木齐');
   });
 
   it('认不出时给出可执行的下一步，并回显原始输入', () => {
@@ -175,7 +201,7 @@ describe('出生地解析诊断', () => {
     assert.equal(diagnosis.matched, null);
   });
 
-  it('解析成功时没有 hint，并说明命中来源', () => {
+  it('已校正时没有 hint，并说明命中来源', () => {
     const diagnosis = describeLocationResolution({ birthLocation: '北京' });
     assert.equal(diagnosis.hint, null);
     assert.equal(diagnosis.source, 'known');

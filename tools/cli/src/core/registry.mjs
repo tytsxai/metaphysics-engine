@@ -84,6 +84,15 @@ export const defineCommand = (spec) => {
     kind: spec.kind,
     reproducibility: normalizeReproducibility(spec),
     /**
+     * 能不能作为 agent tool 暴露出去。默认能 —— 声明成 false 的是那些
+     * **一次工具调用装不下**的命令：长驻前台进程跑起来就不返回，模型调用它只会挂住，
+     * 而 `bazi mcp` 自己被暴露出去还会让 server 里再起一个 server。
+     *
+     * 这是命令自己的声明，不是 toolSchema 那边按名字维护的一张排除表 ——
+     * 那种表会在新增同类命令时静默漏掉，而漏掉的表现是模型的一次调用永远不返回。
+     */
+    exposeAsTool: spec.exposeAsTool !== false,
+    /**
      * 破坏性是 effect 的**派生**，不是第二个真源 —— 两个字段各写各的，
      * 迟早会出现"标了 destructive 但 effect 说只读"这种自相矛盾的声明。
      */

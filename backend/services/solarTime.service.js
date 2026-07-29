@@ -460,38 +460,60 @@ const resolveLocationCoordinates = (birthLocation) => {
 };
 
 /**
- * 出生地解析的诊断结果 —— 这是"认不出"从静默变成可见的地方。
+ * 出生地解析的诊断结果 —— 这是"校正没生效"从静默变成可见的地方。
  *
- * `trueSolarTime` 只回答"校正生没生效"，回答不了"为什么没生效"，而这两者在
- * `trueSolarTime: null` 上是混在一起的：没填出生地、显式关掉、填了但认不出，
- * 三种情况调用方看到的东西一模一样，只有最后一种是需要他改输入的。
+ * `trueSolarTime` 只回答"校正生没生效"，回答不了"为什么没生效"，而所有原因在
+ * `trueSolarTime: null` 上是混在一起的：没填出生地、显式关掉、填了但认不出、
+ * 认出来了却没有时区可用 —— 调用方看到的东西一模一样，但只有后两种是他能改的。
+ *
+ * `status` 报的是**校正的最终下场**，不是"地名查得到吗"。这两者会分叉：地名认出来了
+ * 但没有时区偏移时，标准经线无从算起，校正照样不生效。一个只说"解析成功"的诊断字段
+ * 在这里会亲手制造它本来要消除的那种静默。
  *
  * 单独出一个字段而不是把 `trueSolarTime` 换成带 `applied: false` 的对象：后者会把
  * 既有调用方的 `if (trueSolarTime)` 判断从"没生效"翻成"生效了"。
  */
 const STATUS_HINT = {
+  applied: null,
   absent: '未提供 birthLocation，按钟表时间排盘。要启用真太阳时校正就传出生地。',
   disabled: '调用方显式传了 trueSolarTime: false，按钟表时间排盘。',
   unresolved:
     '出生地无法解析成经度，已跳过真太阳时校正，本次按钟表时间排盘。' +
     '改用 GET /api/locations 里列出的名称，或直接传 "纬度,经度"（如 "39.9042,116.4074"）。',
-  resolved: null,
+  'no-timezone':
+    '出生地认出来了，但没有时区偏移，标准经线无从算起，真太阳时校正未生效，' +
+    '本次按钟表时间排盘。补 timezone（如 "Asia/Shanghai"）或 timezoneOffsetMinutes 即可。',
 };
 
-const describeLocationResolution = ({ birthLocation, trueSolarTime } = {}) => {
+/**
+ * @param timezoneOffsetMinutes 已解析出的时区偏移。传 undefined 表示调用方还没算，
+ *   此时不对时区下判断 —— 只报地名本身认不认得，避免谎报一个 no-timezone。
+ */
+const describeLocationResolution = ({
+  birthLocation,
+  trueSolarTime,
+  timezoneOffsetMinutes,
+} = {}) => {
   const input = typeof birthLocation === 'string' ? birthLocation.trim() : null;
+  const matched = input ? resolveLocationCoordinates(input) : null;
+
   const status = (() => {
     if (trueSolarTime === false) return 'disabled';
     if (!input) return 'absent';
-    return resolveLocationCoordinates(input) ? 'resolved' : 'unresolved';
+    if (!matched) return 'unresolved';
+    if (timezoneOffsetMinutes !== undefined && !Number.isFinite(timezoneOffsetMinutes)) {
+      return 'no-timezone';
+    }
+    return 'applied';
   })();
-  const matched = status === 'resolved' ? resolveLocationCoordinates(input) : null;
+
+  const hit = status === 'applied' || status === 'no-timezone' ? matched : null;
 
   return {
     status,
     input: input || null,
-    matched: matched ? { name: matched.name ?? null, cn: matched.cn ?? null } : null,
-    source: matched?.source ?? null,
+    matched: hit ? { name: hit.name ?? null, cn: hit.cn ?? null } : null,
+    source: hit?.source ?? null,
     hint: STATUS_HINT[status],
   };
 };

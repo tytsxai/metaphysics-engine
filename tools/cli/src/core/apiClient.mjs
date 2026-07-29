@@ -275,7 +275,9 @@ export const BIRTH_FLAGS = [
   {
     name: 'location',
     type: 'string',
-    summary: '出生地，如 "Beijing, CN" 或坐标 "30.27,120.15"。只用于算真太阳时校正值，不改排盘时刻',
+    summary:
+      '出生地，中英文皆可（"北京" / "Beijing"）或坐标 "30.27,120.15"。' +
+      '与 --timezone 同时给出时会改变排盘时刻（真太阳时），可能差一柱',
   },
   {
     name: 'timezone',

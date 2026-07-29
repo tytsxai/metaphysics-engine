@@ -56,6 +56,22 @@ const collectChecks = async () => {
     );
   }
 
+  // MCP SDK 只有 `bazi mcp` 用得到，缺了它其余命令一切正常 —— 所以是 skip 不是 fail。
+  // 但它值得单列一项：不列的话，"MCP server 起不来"只会在 Agent 那边表现成
+  // 连接失败，而这里一眼就能看到原因和修复命令。
+  const mcpSdkInstalled = fileExists(
+    path.join(paths.root, 'node_modules/@modelcontextprotocol/sdk')
+  );
+  results.push(
+    check(
+      'deps:mcp-sdk',
+      'MCP SDK',
+      mcpSdkInstalled ? 'ok' : 'skip',
+      mcpSdkInstalled ? '已安装（bazi mcp 可用）' : '未安装（只影响 bazi mcp，其余命令不受影响）',
+      mcpSdkInstalled ? null : 'npm install'
+    )
+  );
+
   // --- 配置 ---
   results.push(
     check(
