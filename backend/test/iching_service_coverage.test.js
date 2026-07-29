@@ -48,19 +48,20 @@ describe('iching.service coverage', () => {
     assert.deepEqual(deriveChangingLinesFromNumbers([1, 2, 3]), [6]);
   });
 
-  it('deriveChangingLinesFromTimeContext validates and returns sorted unique lines', () => {
+  it('deriveChangingLinesFromTimeContext 按梅花易数给出单一动爻', () => {
     assert.deepEqual(deriveChangingLinesFromTimeContext(null), []);
     assert.deepEqual(deriveChangingLinesFromTimeContext('x'), []);
     assert.deepEqual(deriveChangingLinesFromTimeContext({ year: 'x' }), []);
 
+    // 2026-07-29 12:00 = 丙午年 六月十六 午时
+    // 上卦和 = 年支7 + 月6 + 日16 = 29；下卦和 = 29 + 时支7 = 36；36 ÷ 6 余 0 取 6
     const lines = deriveChangingLinesFromTimeContext({
-      year: 1,
-      month: 1,
-      day: 1,
-      hour: 0,
-      minute: 0,
+      year: 2026,
+      month: 7,
+      day: 29,
+      hour: 12,
     });
-    assert.deepEqual(lines, [3, 6]);
+    assert.deepEqual(lines, [6], '时间起卦只有一个动爻');
 
     const deduped = deriveChangingLinesFromTimeContext({
       year: 1,

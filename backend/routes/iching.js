@@ -6,6 +6,7 @@ import { createAiGuard, resolveClientKey } from '../lib/concurrency.js';
 import {
   pickTrigram,
   buildHexagram,
+  buildTimeDivinationNumbers,
   deriveChangingLinesFromNumbers,
   deriveChangingLinesFromTimeContext,
 } from '../services/iching.service.js';
@@ -31,8 +32,16 @@ router.post('/divine', (req, res) => {
     const day = now.getDate();
     const hour = now.getHours();
     const minute = now.getMinutes();
-    inputNumbers = [year + month + day, hour + minute, year + month + day + hour + minute];
     timeContext = { year, month, day, hour, minute, iso: now.toISOString() };
+
+    // 梅花易数年月日时起例：年支数 + 农历月 + 农历日 定上卦，再加时支数定下卦。
+    // 公历年份整数与分钟都不入卦 —— 那不是这个起法的输入。
+    const timeNumbers = buildTimeDivinationNumbers(timeContext);
+    if (!timeNumbers) {
+      return res.status(400).json({ error: 'Unable to resolve lunar date for time divination.' });
+    }
+    inputNumbers = [timeNumbers.upperSum, timeNumbers.lowerSum, timeNumbers.lowerSum];
+    timeContext.lunar = timeNumbers.lunar;
   } else if (!Array.isArray(numbers) || numbers.length !== 3) {
     return res.status(400).json({ error: 'Provide three numbers for number divination.' });
   }

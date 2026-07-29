@@ -6,6 +6,7 @@ import {
   buildHexagram,
   applyChangingLines,
   deriveChangingLinesFromNumbers,
+  buildTimeDivinationNumbers,
   deriveChangingLinesFromTimeContext,
 } from '../services/iching.service.js';
 
@@ -49,8 +50,35 @@ test('deriveChangingLinesFromNumbers derives a single normalized line', () => {
   assert.deepEqual(deriveChangingLinesFromNumbers([1, 2]), []);
 });
 
-test('deriveChangingLinesFromTimeContext returns sorted unique lines', () => {
+test('deriveChangingLinesFromTimeContext 用农历与地支序数，且只出一个动爻', () => {
+  // 2024-12-25 09:30 = 甲辰年 十一月廿五 巳时
+  // 年支辰=5，月11，日25 → 上卦和 41；加时支巳=6 → 下卦和 47；47 ÷ 6 余 5
   const timeContext = { year: 2024, month: 12, day: 25, hour: 9, minute: 30 };
-  assert.deepEqual(deriveChangingLinesFromTimeContext(timeContext), [3, 6]);
+  assert.deepEqual(deriveChangingLinesFromTimeContext(timeContext), [5]);
   assert.deepEqual(deriveChangingLinesFromTimeContext(null), []);
+
+  // 分钟不入卦：同一时辰内任何分钟都是同一卦
+  assert.deepEqual(
+    deriveChangingLinesFromTimeContext({ ...timeContext, minute: 0 }),
+    deriveChangingLinesFromTimeContext({ ...timeContext, minute: 59 })
+  );
+});
+
+test('时间起卦的上下卦和取农历月日与地支序数', () => {
+  const numbers = buildTimeDivinationNumbers({ year: 2024, month: 12, day: 25, hour: 9 });
+  assert.equal(numbers.lunar.yearZhi, '辰');
+  assert.equal(numbers.lunar.yearNumber, 5);
+  assert.equal(numbers.lunar.month, 11);
+  assert.equal(numbers.lunar.day, 25);
+  assert.equal(numbers.lunar.timeZhi, '巳');
+  assert.equal(numbers.upperSum, 5 + 11 + 25);
+  assert.equal(numbers.lowerSum, 5 + 11 + 25 + 6);
+  assert.equal(buildTimeDivinationNumbers(null), null);
+});
+
+test('闰月按归本月入卦，与紫微同一口径', () => {
+  // 2023-03-25 是闰二月初四
+  const numbers = buildTimeDivinationNumbers({ year: 2023, month: 3, day: 25, hour: 0 });
+  assert.equal(numbers.lunar.isLeapMonth, true);
+  assert.equal(numbers.lunar.month, 2, '闰二月按二月计');
 });
