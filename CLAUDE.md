@@ -1,9 +1,13 @@
-# bazi-master
+# metaphysics-engine
+
+私有的术数算法能力层。带 React 前端的 Web 全栈社区版是另一条线，冻结在公开仓库
+[tytsxai/bazi-master](https://github.com/tytsxai/bazi-master) 的 `v0.2.0`，与本仓库互不同步。
 
 ## 用 ./bazi，不要手搓命令
 
-仓库根有一个面向 Agent 调用的程序化 CLI。环境准备、起停本地栈、数据库迁移、测试、端到端校验
-都走它，不要直接调 npm script 或手动 `node server.js`——手动起的进程 CLI 管不到，之后停不掉。
+仓库根有一个面向 Agent 调用的程序化 CLI。算法调用（`calc` / `cast`）、环境准备、起停本地栈、
+测试、tool schema 导出与 MCP server 都走它，不要直接调 npm script 或手动 `node server.js`
+——手动起的进程 CLI 管不到，之后停不掉。
 
 ```
 ./bazi help --json          # 完整能力清单（唯一真源，不要照抄进任何文档）

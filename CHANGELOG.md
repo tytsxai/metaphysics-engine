@@ -120,6 +120,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Changed
 
+- **The project split in two, and this repository is now proprietary.** The Web full-stack
+  edition — the React frontend, the account system, Prisma and Postgres — is what the
+  community actually adopted, so it stays public and MIT at
+  [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master), frozen at the `v0.2.0` line
+  (commit `9d9fe52`). Everything built after that point lives here, privately, and is not
+  open source: Liu Yao stem-branch attachment, Da Liu Ren with all nine derivation gates, Qi
+  Men Dun Jia, Ba Zhai, almanac day-selection and name grids; the Zi Wei star-placement
+  rewrite and the BaZi strength, solar-term and true-solar-time corrections; and the
+  capability CLI with its tool schema and MCP server. `LICENSE` records exactly where that
+  boundary falls, because the MIT grant on the published portion is irrevocable and the two
+  halves must not get confused later. The split is one-way — the frozen public edition does
+  not track this repository's algorithm rulings, and its Zi Wei placement, BaZi strength and
+  time-based I Ching casting still carry the defects fixed here.
 - **Established the boundary the whole capability layer follows: structure belongs to the
   engine, interpretation belongs to the caller.** How a chart is _cast_ — 三传, star
   placement, bureau layout, 游年 — has one correct answer and must be exact. How a chart is
@@ -341,6 +354,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Removed
 
+- **The open-source infrastructure, which stopped meaning anything once the repository went
+  private.** `llms.txt` existed so search engines and external agents could index a public
+  project; there is no discovery surface any more. `SECURITY.md` described how an outside
+  reporter should disclose a vulnerability, and there are no outside reporters — its other
+  two sections were checked before deleting rather than assumed disposable: the deployer
+  checklist was already covered, in more detail, by `PRODUCTION.md` §7 (particularly the
+  `TRUST_PROXY` hop-count reasoning), and its one genuinely new line, running
+  `npm audit --omit=dev` in the release pipeline as well as in CI, was moved there. The four
+  `.github/ISSUE_TEMPLATE/` forms went with them. `.github/PULL_REQUEST_TEMPLATE.md` stayed:
+  it is a real self-check list — algorithm changes need a canonical source, interface changes
+  need `docs/openapi.json` regenerated, school rulings need syncing into `SKILL.md` — and
+  that applies no matter who is writing the change. The SEO keyword blocks in both READMEs
+  and in `docs/faq.md`, and the 37 npm keywords, went the same way.
 - **Every artifact that documented or operated the deleted storage layer.** Removing the
   database left a trail of files that still described a system that no longer exists —
   the most expensive kind of documentation, because it reads as authoritative. Deleted:
