@@ -3,7 +3,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 [![Private](https://img.shields.io/badge/repo-private-lightgrey.svg)](#)
 
-[English README](README.en.md) · [llms.txt](llms.txt) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [开发约定](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
+[English README](README.en.md) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [开发约定](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
 > 本仓库为私有能力层。带 React 前端的 Web 全栈社区版停留在
 > [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master) 的 `v0.2.0` 一线，功能冻结，
@@ -15,9 +15,7 @@ Metaphysics Engine 是一个私有的命理计算引擎，把中国传统术数�
 
 English summary: **Metaphysics Engine is a private divination calculation engine** covering the traditional Chinese canon — BaZi, Zi Wei Dou Shu, Liu Yao (King Fang stem-branch attachment), Da Liu Ren, Qi Men Dun Jia, Ba Zhai feng shui, almanac day-selection and name grids — plus Tarot, I Ching, Zodiac and Synastry. Exposed as a documented HTTP API and an agent-callable CLI. Stateless pure calculation — no database, no accounts, no UI. Node.js / Express, optional Redis cache, pluggable AI providers, OpenAPI contract.
 
-> 关键词 / Keywords: 八字排盘 API, BaZi chart API, 紫微斗数排盘, Zi Wei Dou Shu chart, 六爻纳甲 API, Liu Yao hexagram API, 大六壬起课, Da Liu Ren API, 奇门遁甲排盘, Qi Men Dun Jia API, 八宅风水, feng shui API, 择吉黄历 API, Chinese almanac API, 姓名五格, 塔罗抽牌 API, Tarot draw API, 周易起卦 API, I Ching divination API, 星座配对, astrology compatibility, 合盘分析 Synastry, stateless calculation engine, agent tools, AI divination backend.
-
-**目录**：[项目定位](#项目定位--project-snapshot) · [核心能力](#核心能力--core-capabilities) · [快速开始](#快速开始--quick-start) · [调用示例](#调用示例--usage-examples) · [接口速查](#接口速查--api-endpoints) · [适用场景](#适用场景--use-cases) · [技术栈](#技术栈--tech-stack) · [环境变量](#环境变量--configuration) · [FAQ](#faq--常见问题) · [项目结构](#项目结构--repository-structure) · [测试](#测试--testing) · [生产部署](#部署与生产注意事项--production-notes) · [参与共建](#参与共建--contributing) · [限制](#限制与免责声明--limitations)
+**目录**：[项目定位](#项目定位--project-snapshot) · [核心能力](#核心能力--core-capabilities) · [快速开始](#快速开始--quick-start) · [调用示例](#调用示例--usage-examples) · [接口速查](#接口速查--api-endpoints) · [适用场景](#适用场景--use-cases) · [技术栈](#技术栈--tech-stack) · [环境变量](#环境变量--configuration) · [FAQ](#faq--常见问题) · [项目结构](#项目结构--repository-structure) · [测试](#测试--testing) · [生产部署](#部署与生产注意事项--production-notes) · [开发约定](#开发约定--development) · [限制](#限制与免责声明--limitations)
 
 ## 项目定位 / Project Snapshot
 
@@ -35,7 +33,7 @@ English summary: **Metaphysics Engine is a private divination calculation engine
 | 开发入口     | 仓库根 `./bazi` 程序化 CLI：算法调用、环境准备、起停引擎、测试，全部支持 `--json`        |
 | 主要入口     | API 路由在 `backend/routes`；算法逻辑在 `backend/services`                               |
 | 接口契约     | OpenAPI 描述在 [docs/openapi.json](docs/openapi.json)，运行时挂在 `/api-docs`，CI 守快照 |
-| 许可证       | MIT，可自由 fork、修改、自部署和商用（需自行承担合规与免责声明）                         |
+| 许可证       | 专有，保留所有权利。见 [LICENSE](LICENSE)                                                |
 | 重要限制     | 输出仅适合娱乐、文化研究或产品原型验证；不要当作医疗、法律、投资、人生决策建议           |
 
 ### 这不是什么 / What it is not
@@ -286,9 +284,15 @@ curl -X POST http://127.0.0.1:4000/api/tarot/draw \
 
 一个都不需要——项目没有账号系统。唯一带鉴权的是 `/api-docs`（Basic Auth）和 `/metrics`（Bearer token），它们是运维面。
 
-### 许可证是什么？可以商用吗？
+### 许可证是什么？
 
-MIT 许可证，允许 fork、修改、闭源分发和商业使用。但命理/占星内容的合规声明、免责声明、数据保护和平台审核责任由部署者自行承担，详见[限制与免责声明](#限制与免责声明--limitations)。
+专有软件，保留所有权利，见 [LICENSE](LICENSE)。需要注意的是这里有一条历史边界：截至提交
+`9d9fe52` 的那一版曾以 MIT 发布在 [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master)，
+那份授权不可撤回；此后的开发——六爻纳甲、大六壬、奇门遁甲、八宅、择吉、姓名五格，紫微安星重写与
+八字旺衰、节气、真太阳时的修正，以及能力 CLI / tool schema / MCP server——从未以 MIT 发布过。
+LICENSE 里把这条线写明了。
+
+部署时命理/占星内容的合规声明、免责声明和平台审核责任仍由部署者自行承担，详见[限制与免责声明](#限制与免责声明--limitations)。
 
 ### 为什么要用 `./bazi` 而不是直接 npm script？
 
@@ -311,7 +315,6 @@ bazi-master/
 ├── bazi                     # CLI entry point
 ├── docker-compose.yml       # 本地可选 Redis（引擎本身不需要）
 ├── docker-compose.prod.yml  # 生产参考栈：引擎 + 可选 Redis + autoheal
-├── llms.txt                 # AI-search friendly project summary
 └── PRODUCTION.md            # 生产部署与运维
 ```
 
@@ -342,28 +345,17 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 - 优雅停机带排水窗口：`SHUTDOWN_DRAIN_MS` 必须按你的负载均衡探测节奏设置，并小于编排层的 stop grace period。
 - 发布前请阅读 [PRODUCTION.md](PRODUCTION.md)。
 
-## 参与共建 / Contributing
+## 开发约定 / Development
 
 这个项目最难的部分不是写代码，是**「写错了也不会报错」**：三传取法、安星链条、拆补定局、
-节气交接的时刻精度——错了不抛异常，只会安静地给出一张错盘。所以**最有价值的贡献是懂某一门
-术数的人来核对排盘结果**，不需要写一行代码。
+节气交接的时刻精度——错了不抛异常，只会安静地给出一张错盘。所以改算法之前先分清两种情况，
+处理方式完全不同：**算错了**（三传漏宗门、纳甲干支排错）是 bug，直接修并补测试；
+**流派不同**（闰月归本月 vs 折半、晚子时换不换日）不是 bug，就地注明口径、必要时做成参数，
+但不改默认。
 
-几个好的切入点：
-
-| 方向         | 说明                                                                                                             |
-| ------------ | ---------------------------------------------------------------------------------------------------------------- |
-| 排盘口径校对 | 核对某一门术数的输出，用[排盘口径模板](.github/ISSUE_TEMPLATE/algorithm_discrepancy.yml)报告，带上典籍或流派依据 |
-| 补新术数     | 梅花易数、七政四余、小六壬等；先开 issue 说明取法依据                                                            |
-| 文档与翻译   | `README.en.md` / `llms.txt` 的英文表述，或补日语、繁体中文 README                                                |
-| Agent 接入   | `./bazi mcp` 是可直接挂载的 MCP server，`./bazi schema` 导出三种 tool schema；欢迎补各家 Runtime 的接入示例      |
-| 生态客户端   | 前端、Bot、SDK 不进主仓，但欢迎开 issue 链接过来——攒够几个就在 README 里开一节列出来                             |
-
-报告口径问题时请分清两种情况——处理方式完全不同：**算错了**（三传漏宗门、纳甲干支排错）是 bug，
-直接修并补测试；**流派不同**（闰月归本月 vs 折半、晚子时换不换日）不是 bug，就地注明口径、
-必要时做成参数，但不改默认。
-
-上手三行命令、加一个新能力要动哪几处、PR 检查清单、以及哪些改动因为边界原因不会被接受，
-全部写在 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请走 [SECURITY.md](SECURITY.md)，不要开公开 issue。
+加一个新能力要动哪九处、本地质量门槛、提交信息规范、以及哪些改动因为边界原因不做，
+全部写在 [CONTRIBUTING.md](CONTRIBUTING.md)。已选定的流派口径逐条写在
+[.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md)，改算法前先读那一份。
 
 ## 限制与免责声明 / Limitations
 
@@ -380,12 +372,11 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 - [docs/development.md](docs/development.md): 本地开发指南
 - [docs/faq.md](docs/faq.md): 常见问题
 - [.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md): 算法语义边界与 CLI 用法
-- [CONTRIBUTING.md](CONTRIBUTING.md): 参与共建指南
-- [SECURITY.md](SECURITY.md): 安全策略与部署者安全基线
+- [CONTRIBUTING.md](CONTRIBUTING.md): 开发约定、质量门槛与算法改动判据
 - [PRODUCTION.md](PRODUCTION.md): 生产部署与运维
 - [CHANGELOG.md](CHANGELOG.md): 版本变更记录
-- [llms.txt](llms.txt): structured summary for AI search engines and coding agents
 
 ## License
 
-MIT License. See [LICENSE](LICENSE).
+专有软件，保留所有权利。见 [LICENSE](LICENSE)——其中写明了哪一部分代码曾以 MIT 发布、
+边界在哪个提交。

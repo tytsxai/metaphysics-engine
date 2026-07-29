@@ -4,7 +4,7 @@
   "version": "0.2.0",
   "type": "module",
   "description": "Stateless HTTP surface over the BaZi / Zi Wei Dou Shu / Tarot / I Ching / Zodiac / Synastry calculation engine, with OpenAPI, health checks and optional AI providers.",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "homepage": "https://github.com/tytsxai-stack/metaphysics-engine#readme",
   "repository": {
     "type": "git",
@@ -18,16 +18,6 @@
     "node": ">=20",
     "npm": ">=9"
   },
-  "keywords": [
-    "bazi",
-    "tarot",
-    "iching",
-    "ziwei-doushu",
-    "astrology",
-    "express",
-    "openapi",
-    "ai-provider"
-  ],
   "scripts": {
     "dev": "node server.js",
     "start": "node scripts/start.mjs",

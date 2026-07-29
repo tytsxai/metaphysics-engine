@@ -504,7 +504,7 @@ export const calculateDailyScore = (userChart, dailyPillars) => {
   // Element Relationship
   const relation = getElementRelation(dayElement, dmElement); // Day acts on Me
 
-  // 断语一律用中文：能力层面向的是中文使用者，英文只留给 README.en / llms.txt 那类介绍文件
+  // 断语一律用中文：能力层面向的是中文使用者，英文只留给 README.en 那类介绍文件
   if (relation === 'Generates') {
     score += 15;
     advice.push('流日生扶日主，得力之日。');

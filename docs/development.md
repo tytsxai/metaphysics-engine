@@ -143,10 +143,11 @@ CLI 刻意拒绝接管也拒绝 kill，因为按端口杀进程会误伤别的�
 检查 `OPENAI_API_KEY` 或 `ANTHROPIC_API_KEY` 是否配置。未配置时 provider 为 `mock`。
 `GET /api/ai/providers` 能看到当前生效的是哪个。
 
-## 贡献
+## 开发约定
 
-完整指南见 [CONTRIBUTING.md](../CONTRIBUTING.md)：项目边界、加一门新术数要动哪九处、
-本地质量门槛、提交规范、PR 检查清单，以及哪些改动因为边界原因不会被接受。
+完整约定见 [CONTRIBUTING.md](../CONTRIBUTING.md)：项目边界、算法改动的判据、
+加一门新术数要动哪九处、本地质量门槛、提交规范、改动自查清单，
+以及哪些改动因为边界原因不做。
 
 几条最容易踩的：
 

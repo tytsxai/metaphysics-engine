@@ -3,7 +3,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 [![Private](https://img.shields.io/badge/repo-private-lightgrey.svg)](#)
 
-[简体中文 README](README.md) · [llms.txt](llms.txt) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Conventions](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
+[简体中文 README](README.md) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Conventions](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
 > This is the private capability layer. The Web full-stack community edition with the
 > React frontend is frozen at `v0.2.0` in
@@ -40,7 +40,7 @@ client you build, or wire it into an AI agent as a tool.
 | Dev entry point     | `./bazi`, a programmatic CLI for capability calls and repo operations — every command supports `--json`                       |
 | Main entry points   | API routes in `backend/routes`, algorithms in `backend/services`                                                              |
 | API contract        | OpenAPI in [docs/openapi.json](docs/openapi.json), served at `/api-docs`, snapshot guarded in CI                              |
-| License             | MIT — fork, modify, self-host, and use commercially (compliance and disclaimers are yours)                                    |
+| License             | Proprietary, all rights reserved — see [LICENSE](LICENSE)                                                                     |
 | Key limitation      | Output is for entertainment, cultural research, or product prototyping only — never medical, legal, financial, or life advice |
 
 ### What it is not
@@ -257,30 +257,22 @@ output twice in a row). It is recorded as `skipped` when no engine is running.
   orchestrator's stop grace period.
 - Read [PRODUCTION.md](PRODUCTION.md) before deploying.
 
-## Contributing
+## Development
 
-The hard part of this project is not the code — it is that **these algorithms fail silently**. A
-wrong three-transmission derivation, a misplaced star, an off-by-one-hour solar term: none of them
-raise an error, they just return a wrong chart. So the most valuable contribution is **someone who
-knows one of these traditions verifying the output**, no code required.
+The hardest part of this project is not writing code, it is that **a wrong answer raises no
+error**: three-transmission derivation, the star-placement chain, bureau determination, the
+instant a solar term turns. Get one wrong and nothing throws — you simply get a wrong chart.
+So classify the problem before changing an algorithm, because the two cases are handled very
+differently: **a bug** (a missing derivation gate, a wrong stem-branch pair) gets fixed and
+covered by a test; **a school difference** (leap-month handling, late-Zi day rollover) does
+not — the chosen ruling is documented in place and may be exposed as a parameter, but the
+default is not silently changed.
 
-Good entry points:
-
-| Area                               | What it looks like                                                                                        |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Verifying a school's casting rules | File an [algorithm discrepancy](.github/ISSUE_TEMPLATE/algorithm_discrepancy.yml) with a canonical source |
-| Adding a tradition                 | Plum Blossom, Xiao Liu Ren, and others — open an issue with the source first                              |
-| Docs and translation               | English phrasing in `README.en.md` / `llms.txt`, or a README in another language                          |
-| Agent integration                  | `./bazi mcp` is a mountable MCP server; `./bazi schema` exports three shapes. Runtime examples welcome    |
-| Ecosystem clients                  | Frontends, bots, and SDKs stay out of this repo — link yours in an issue and they get a README section    |
-
-When reporting a discrepancy, please distinguish **a bug** (objectively wrong — we fix it and add a
-test) from **a school difference** (leap-month handling, late-Zi rollover — we document the chosen
-school in place and may expose a parameter, but won't silently change the default).
-
-[CONTRIBUTING.md](CONTRIBUTING.md) covers the setup, which files a new capability touches, the PR
-checklist, and which changes fall outside the project's boundary. Security issues go to
-[SECURITY.md](SECURITY.md), not to a public issue.
+The nine places a new capability has to touch, the local quality gates, the commit convention
+and the changes that are out of bounds are all in [CONTRIBUTING.md](CONTRIBUTING.md). The
+rulings already chosen are listed one by one in
+[.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md) — read that before
+touching an algorithm.
 
 ## Limitations
 
@@ -301,11 +293,10 @@ checklist, and which changes fall outside the project's boundary. Security issue
 - [docs/development.md](docs/development.md) — local development
 - [docs/faq.md](docs/faq.md) — FAQ
 - [.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md) — algorithmic semantics and the CLI contract
-- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution guide
-- [SECURITY.md](SECURITY.md) — security policy and deployer checklist
+- [CONTRIBUTING.md](CONTRIBUTING.md) — development conventions, quality gates, algorithm-change criteria
 - [PRODUCTION.md](PRODUCTION.md) — production deployment and operations
-- [llms.txt](llms.txt) — structured summary for AI search engines and coding agents
 
 ## License
 
-MIT License. See [LICENSE](LICENSE).
+Proprietary, all rights reserved. See [LICENSE](LICENSE), which records which part of the
+code was once published under the MIT License and where that boundary falls.

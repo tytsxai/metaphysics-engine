@@ -2,9 +2,9 @@
 
 > 面向第一次进入仓库的开发者、搜索引擎和 AI 搜索引擎。本页只描述当前仓库已实现或已配置的能力，不代表命理、占星或 AI 解读的准确性承诺。
 
-## BaZi Master 是什么？
+## Metaphysics Engine 是什么？
 
-一个开源的**算法能力层**：把中国传统术数的排盘逻辑——八字、紫微斗数、六爻纳甲、大六壬、
+一个私有的**算法能力层**：把中国传统术数的排盘逻辑——八字、紫微斗数、六爻纳甲、大六壬、
 奇门遁甲、八宅风水、择吉黄历、姓名五格——连同塔罗、周易起卦、星座、合盘和可选的 AI 解读，
 收敛成一套文档化的自部署 HTTP API 和一个面向 Agent 的程序化 CLI。Node.js + Express，无状态纯计算。
 
@@ -145,24 +145,13 @@ MIT 许可证，允许 fork、修改、闭源分发和商业使用。
 这个项目最需要的不是代码，是**懂术数的人来核对排盘结果**。这些算法错了不会报错，
 只会安静地给出一张错盘——三传取法、安星链条、拆补定局、节气交接的时刻精度都是如此。
 
-报告口径问题请用
-[排盘口径模板](https://github.com/tytsxai-stack/metaphysics-engine/issues/new?template=algorithm_discrepancy.yml)，
-带上完整输入、当前输出、你认为正确的输出，以及**依据的典籍或流派**（最后这条最关键）。
+记录一处口径问题时要带全：完整可复现的输入、当前输出、你认为正确的输出，以及**依据的典籍或流派**
+（最后这条最关键——没有依据的算法改动没法验证，测试样例也只是把当前实现又抄了一遍）。
 
-代码方向的切入点、加一门新术数要动哪几处、PR 检查清单见
+先分清是「算错了」还是「流派不同」，加一门新术数要动哪九处、本地质量门槛见
 [../CONTRIBUTING.md](../CONTRIBUTING.md)。
 
 ## 输出结果可以作为专业建议吗？
 
 不可以。八字、塔罗、周易、星座、紫微、合盘和 AI 解读只适合娱乐、文化研究、产品原型和代码学习，
 不应作为医疗、法律、金融、投资、心理健康或人生重大决策建议。
-
-## 推荐搜索关键词 / Recommended Search Keywords
-
-八字排盘 API 开源, BaZi chart open source API, 紫微斗数排盘开源, Zi Wei Dou Shu chart,
-六爻纳甲装卦 API, Liu Yao najia API, 大六壬起课三传 API, Da Liu Ren API,
-奇门遁甲排局 API, Qi Men Dun Jia API, 八宅风水本命卦 API, 择吉黄历 API, Chinese almanac API,
-姓名五格三才 API, 塔罗抽牌 API, Tarot draw API, 周易起卦 API, I Ching divination API,
-星座配对 API, 上升星座计算 API, astrology compatibility API, 合盘分析 Synastry,
-真太阳时排盘, 节气交接判定, AI fortune telling backend, divination calculation engine,
-stateless calculation API, agent tools, MCP-ready API.
