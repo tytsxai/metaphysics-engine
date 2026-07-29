@@ -46,8 +46,24 @@ const shuffleDeck = (deck, rng) => {
   return shuffled;
 };
 
-export const drawTarot = ({ spreadType = 'SingleCard', rng = Math.random } = {}) => {
+/**
+ * 逆位概率。
+ *
+ * 洗牌时每张牌的朝向是独立的，正逆应当等概率 —— 此前硬编的 0.3 没有出处，
+ * 只会让逆位系统性偏少。要按自家牌阵习惯调（有些实践确实压低逆位率），
+ * 传 reversalRate 覆盖，不要再改这个默认值。
+ */
+const DEFAULT_REVERSAL_RATE = 0.5;
+
+export const drawTarot = ({
+  spreadType = 'SingleCard',
+  rng = Math.random,
+  reversalRate = DEFAULT_REVERSAL_RATE,
+} = {}) => {
   const normalizedSpread = spreadType || 'SingleCard';
+  const rate = Number.isFinite(reversalRate)
+    ? Math.min(Math.max(reversalRate, 0), 1)
+    : DEFAULT_REVERSAL_RATE;
   const spreadConfig = getTarotSpreadConfig(normalizedSpread);
   const positions = spreadConfig.positions || [];
 
@@ -59,11 +75,12 @@ export const drawTarot = ({ spreadType = 'SingleCard', rng = Math.random } = {})
     position: index + 1,
     positionLabel: positions[index]?.label || spreadConfig.labels?.[index] || null,
     positionMeaning: positions[index]?.meaning || null,
-    isReversed: rng() < 0.3,
+    isReversed: rng() < rate,
   }));
 
   return {
     spreadType: normalizedSpread,
+    reversalRate: rate,
     cards: drawnCards,
     spreadMeta: {
       positions: positions.map((position, index) => ({
