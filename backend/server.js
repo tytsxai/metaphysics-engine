@@ -46,7 +46,7 @@ import apiRouter from './routes/api.js';
 // Initialize configurations
 const appConfig = initAppConfig();
 const { ttlMs: BAZI_CACHE_TTL_MS } = getBaziCacheConfig();
-const SERVICE_NAME = 'bazi-master-backend';
+const SERVICE_NAME = 'metaphysics-engine-backend';
 
 // Extract commonly used config values
 const {
@@ -526,7 +526,9 @@ const startServer = async ({
   const bindHost =
     processRef.env.BIND_HOST || (appConfigValue.IS_PRODUCTION ? '0.0.0.0' : '127.0.0.1');
   serverInstance.listen(appConfigValue.PORT, bindHost, () => {
-    loggerInstance.info(`BaZi Master API running on http://${bindHost}:${appConfigValue.PORT}`);
+    loggerInstance.info(
+      `Metaphysics Engine API running on http://${bindHost}:${appConfigValue.PORT}`
+    );
     if (appConfigValue.IS_PRODUCTION && bindHost === '0.0.0.0') {
       loggerInstance.info('[production] Accepting connections from all interfaces');
     }

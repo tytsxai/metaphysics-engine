@@ -8,7 +8,7 @@ describe('API/Ai routes coverage', () => {
   it('GET /api/health returns status payload', async () => {
     const res = await request(app).get('/api/health');
     assert.ok([200, 503].includes(res.statusCode));
-    assert.equal(res.body.service, 'bazi-master-backend');
+    assert.equal(res.body.service, 'metaphysics-engine-backend');
     assert.ok(res.body.checks);
     assert.ok(res.body.timestamp);
   });
@@ -16,7 +16,7 @@ describe('API/Ai routes coverage', () => {
   it('GET /api/ready returns readiness payload', async () => {
     const res = await request(app).get('/api/ready');
     assert.ok([200, 503].includes(res.statusCode));
-    assert.equal(res.body.service, 'bazi-master-backend');
+    assert.equal(res.body.service, 'metaphysics-engine-backend');
     assert.ok(res.body.checks);
     assert.ok(res.body.timestamp);
   });

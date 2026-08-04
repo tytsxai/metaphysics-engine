@@ -19,7 +19,7 @@ import synastryRouter from './synastry.js';
 import calendarRouter from './calendar.js';
 
 const router = express.Router();
-const SERVICE_NAME = 'bazi-master-backend';
+const SERVICE_NAME = 'metaphysics-engine-backend';
 
 // Health Check Endpoint
 router.get('/health', async (req, res) => {

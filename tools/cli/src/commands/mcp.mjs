@@ -149,7 +149,7 @@ export const mcpCommand = defineCommand({
     const byName = new Map(catalog.map((entry) => [entry.name, entry]));
 
     const server = new Server(
-      { name: 'bazi-master', version: readVersion() },
+      { name: 'metaphysics-engine', version: readVersion() },
       { capabilities: { tools: {} } }
     );
 

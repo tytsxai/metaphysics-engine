@@ -36,7 +36,7 @@ const BIRTH_PROPS = {
 export const buildOpenApiSpec = ({ baseUrl } = {}) => ({
   openapi: '3.0.3',
   info: {
-    title: 'BaZi Master API',
+    title: 'Metaphysics Engine API',
     version: '2.0.0',
     description: [
       '中国传统术数的算法能力层：八字、紫微斗数、六爻纳甲、大六壬、奇门遁甲、八宅风水、',

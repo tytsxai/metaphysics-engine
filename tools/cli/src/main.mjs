@@ -21,7 +21,7 @@ import { helpCommand, helpPayload } from './commands/help.mjs';
 
 export const rootCommand = defineCommand({
   name: 'bazi',
-  summary: 'bazi-master 项目的程序化 CLI —— 面向 AI Agent 调用设计',
+  summary: 'metaphysics-engine 项目的程序化 CLI —— 面向 AI Agent 调用设计',
   description:
     '两类命令：calc / cast 是这个项目对外输出的算法能力，其余是维护本仓库的运维命令。\n' +
     '所有命令都支持 --json（stdout 只有一个 JSON 文档，进度与噪音走 stderr）。\n' +
