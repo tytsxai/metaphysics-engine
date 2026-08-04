@@ -5,10 +5,11 @@
 
 [简体中文 README](README.md) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Conventions](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
-> This is the private capability layer. The Web full-stack community edition with the
-> React frontend is frozen at `v0.2.0` in
-> [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master); its algorithm rulings,
-> CLI surface and MCP integration do not track this repository.
+> This is the private capability layer. It and the Web full-stack community edition — the public
+> [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master) repository, frozen at `v0.2.0` —
+> are two fully isolated, mutually out-of-sync codebases. This repository shares, reuses or
+> depends on no code, data or assets from that line, and its algorithm rulings, CLI surface and
+> MCP integration do not track it.
 
 **Metaphysics Engine is a private, self-hostable calculation engine for Chinese metaphysics and
 astrology**, exposed as a documented HTTP API and an agent-callable CLI. It covers the traditional

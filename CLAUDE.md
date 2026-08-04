@@ -1,7 +1,9 @@
 # metaphysics-engine
 
-私有的术数算法能力层。带 React 前端的 Web 全栈社区版是另一条线，冻结在公开仓库
-[tytsxai/bazi-master](https://github.com/tytsxai/bazi-master) 的 `v0.2.0`，与本仓库互不同步。
+私有的术数算法能力层。它与带 React 前端的 Web 全栈社区版（公开仓库
+[tytsxai/bazi-master](https://github.com/tytsxai/bazi-master)，冻结在 `v0.2.0`）是两个完全独立的
+代码库：本仓库不共享、不采用、不依赖那条线的任何代码、数据或资产，两边互不同步，也不要把两边的
+改动搬来搬去。授权边界见 [LICENSE](LICENSE)。
 
 ## 用 ./bazi，不要手搓命令
 

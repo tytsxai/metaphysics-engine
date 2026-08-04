@@ -130,6 +130,6 @@ scope 用模块名（`bazi` / `ziwei` / `liuyao` / `liuren` / `qimen` / `cli` / 
 - 为了迎合某一流派而改默认口径，且不保留原口径
 - 大规模无关重构、或引入没有明确收益的新依赖
 
-带 React 前端的 Web 全栈版本是一条已经分出去的线，冻结在公开仓库
-[tytsxai/bazi-master](https://github.com/tytsxai/bazi-master) 的 `v0.2.0`，
-不与本仓库同步——不要试图把两边的改动搬来搬去。
+带 React 前端的 Web 全栈社区版（公开仓库 [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master)，
+冻结在 `v0.2.0`）与本仓库是两条完全隔离、互不同步的独立代码库：本仓库不共享、不采用那条线的任何
+代码、数据或资产。不要试图把两边的改动搬来搬去。授权边界见 [LICENSE](LICENSE)。

@@ -44,7 +44,7 @@ Metaphysics Engine 是一个自部署的**算法能力层**：把八字、紫微
 ## 目录结构
 
 ```text
-bazi-master/
+metaphysics-engine/
 ├── backend/
 │   ├── server.js            # 组装中间件链、挂路由、优雅停机、启动校验
 │   ├── bootstrap/           # asyncRoutes：给 Express 4 打异步错误传播的补丁

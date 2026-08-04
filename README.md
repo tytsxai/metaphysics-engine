@@ -5,9 +5,9 @@
 
 [English README](README.en.md) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [开发约定](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
-> 本仓库为私有能力层。带 React 前端的 Web 全栈社区版停留在
-> [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master) 的 `v0.2.0` 一线，功能冻结，
-> 与本仓库的算法口径、CLI 能力与 MCP 接入互不同步。
+> 本仓库为私有能力层。它与带 React 前端的 Web 全栈社区版（公开仓库
+> [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master)，冻结在 `v0.2.0`）是两个完全隔离、
+> 互不同步的独立仓库：算法口径、CLI 能力与 MCP 接入均不共享，也不沿用那条线的任何代码或资产。
 
 Metaphysics Engine 是一个私有的命理计算引擎，把中国传统术数的排盘能力——八字（BaZi）、紫微斗数（Zi Wei Dou Shu）、六爻纳甲（Liu Yao）、大六壬（Da Liu Ren）、奇门遁甲（Qi Men Dun Jia）、八宅风水（Ba Zhai）、择吉（almanac）、姓名五格——连同塔罗、周易起卦、星座与上升星座、合盘分析和 AI 解读，收敛成一套文档化的 HTTP API 和一个面向 Agent 的程序化 CLI。
 
@@ -301,7 +301,7 @@ LICENSE 里把这条线写明了。
 ## 项目结构 / Repository Structure
 
 ```text
-bazi-master/
+metaphysics-engine/
 ├── backend/                 # Express API
 │   ├── routes/              # /api/bazi, /api/ziwei, /api/tarot, /api/iching, ...
 │   ├── services/            # 算法与业务逻辑：calculation, ziwei, tarot, iching, ai, ...
