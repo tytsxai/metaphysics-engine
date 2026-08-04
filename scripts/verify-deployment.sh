@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# BaZi Master 部署验证脚本
+# Metaphysics Engine 部署验证脚本
 # 用于验证生产部署的完整性和功能正确性
 
 set -euo pipefail
@@ -124,7 +124,7 @@ test_basic_connectivity() {
     fi
 
     validate_json "$health_response" "status" "ok"
-    validate_json "$health_response" "service" "bazi-master-backend"
+    validate_json "$health_response" "service" "metaphysics-engine-backend"
     validate_json "$health_response" "timestamp"
     log_success "API health check passed"
 
@@ -324,7 +324,7 @@ test_openapi() {
 
 # Main function
 main() {
-    log_info "🚀 Starting BaZi Master deployment verification"
+    log_info "🚀 Starting Metaphysics Engine deployment verification"
     log_info "API Base URL: $API_BASE_URL"
     log_info "Timeout: ${TIMEOUT}s, Retries: $RETRIES"
     echo

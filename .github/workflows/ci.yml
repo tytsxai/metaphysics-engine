@@ -142,11 +142,11 @@ jobs:
 
       # Build context is the repository root, matching docker-compose.prod.yml.
       - name: Build the production image
-        run: docker build -f backend/Dockerfile -t bazi-master:ci .
+        run: docker build -f backend/Dockerfile -t metaphysics-engine:ci .
 
       - name: Start the container in production mode, without Redis
         run: |
-          docker run -d --name bazi-ci -p 4000:4000 \
+          docker run -d --name metaphysics-ci -p 4000:4000 \
             -e NODE_ENV=production \
             -e PORT=4000 \
             -e BIND_HOST=0.0.0.0 \
@@ -156,7 +156,7 @@ jobs:
             -e CORS_ALLOWED_ORIGINS=https://app.example.com \
             -e TRUST_PROXY=1 \
             -e SHUTDOWN_DRAIN_MS=1000 \
-            bazi-master:ci
+            metaphysics-engine:ci
 
           for _ in $(seq 1 30); do
             if curl -fsS http://127.0.0.1:4000/live >/dev/null 2>&1; then
