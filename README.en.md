@@ -1,17 +1,17 @@
 # Metaphysics Engine — Divination Calculation Capability Layer
 
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
-[![Private](https://img.shields.io/badge/repo-private-lightgrey.svg)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 [简体中文 README](README.md) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Conventions](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
-> This is the private capability layer. It and the Web full-stack community edition — the public
+> This is the open-source capability layer (MIT). It and the Web full-stack community edition — the public
 > [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master) repository, frozen at `v0.2.0` —
 > are two fully isolated, mutually out-of-sync codebases. This repository shares, reuses or
 > depends on no code, data or assets from that line, and its algorithm rulings, CLI surface and
 > MCP integration do not track it.
 
-**Metaphysics Engine is a private, self-hostable calculation engine for Chinese metaphysics and
+**Metaphysics Engine is an open-source, self-hostable calculation engine for Chinese metaphysics and
 astrology**, exposed as a documented HTTP API and an agent-callable CLI. It covers the traditional
 Chinese canon — BaZi (八字排盘), Zi Wei Dou Shu (紫微斗数), Liu Yao stem-branch attachment
 (六爻纳甲), Da Liu Ren (大六壬), Qi Men Dun Jia (奇门遁甲), Ba Zhai feng shui (八宅), almanac
@@ -29,7 +29,7 @@ client you build, or wire it into an AI agent as a tool.
 
 | Field               | Answer                                                                                                                        |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Project type        | Private divination / astrology **calculation capability layer**, delivered as a self-hosted HTTP API + CLI                    |
+| Project type        | Open-source divination / astrology **calculation capability layer** (MIT), delivered as a self-hosted HTTP API + CLI          |
 | Problem solved      | Turns the silent-failure edge cases of these algorithms into a tested, contract-backed, callable capability                   |
 | Who it is for       | Backend developers adding metaphysics calculation to their own product; teams giving an AI agent a real tool                  |
 | Runtime shape       | **Stateless pure calculation** — no database, no accounts, no sessions, no file writes                                        |
@@ -41,7 +41,7 @@ client you build, or wire it into an AI agent as a tool.
 | Dev entry point     | `./bazi`, a programmatic CLI for capability calls and repo operations — every command supports `--json`                       |
 | Main entry points   | API routes in `backend/routes`, algorithms in `backend/services`                                                              |
 | API contract        | OpenAPI in [docs/openapi.json](docs/openapi.json), served at `/api-docs`, snapshot guarded in CI                              |
-| License             | Proprietary, all rights reserved — see [LICENSE](LICENSE)                                                                     |
+| License             | MIT. See [LICENSE](LICENSE) |
 | Key limitation      | Output is for entertainment, cultural research, or product prototyping only — never medical, legal, financial, or life advice |
 
 ### What it is not
@@ -299,5 +299,5 @@ touching an algorithm.
 
 ## License
 
-Proprietary, all rights reserved. See [LICENSE](LICENSE), which records which part of the
+Open-source (MIT), all rights reserved. See [LICENSE](LICENSE), which records which part of the
 code was once published under the MIT License and where that boundary falls.
