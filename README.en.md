@@ -3,7 +3,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-[简体中文 README](README.md) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Conventions](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
+[简体中文 README](README.md) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [Conventions](CONTRIBUTING.md) · [llms.txt](llms.txt) · [Changelog](CHANGELOG.md)
 
 > This is the open-source capability layer (MIT). It and the Web full-stack community edition — the public
 > [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master) repository, frozen at `v0.2.0` —
@@ -118,7 +118,7 @@ touches one location.
 Prerequisites: **Node.js 20+ and npm**. No Docker, no database, no Redis.
 
 ```bash
-git clone https://github.com/tytsxai-stack/metaphysics-engine.git
+git clone https://github.com/tytsxai/metaphysics-engine.git
 cd metaphysics-engine
 
 ./bazi setup     # install dependencies, generate .env
@@ -287,12 +287,21 @@ touching an algorithm.
 - AI interpretation depends on provider model quality, keys, rate limits, and prompts.
 - Reverse proxy, domains, certificates, and jurisdictional compliance are the deployer's responsibility.
 
+## Search keywords
+
+Metaphysics Engine, Chinese metaphysics API, BaZi calculation API, Zi Wei Dou Shu API, Liu Yao CLI, Da Liu Ren, Qi Men Dun Jia API, Ba Zhai feng shui, Tarot API, I Ching, Synastry, agent-callable divination CLI, stateless fortune-telling backend, OpenAPI metaphysics, 术数算法能力层, 八字排盘 API, 紫微斗数, 六爻纳甲, 奇门遁甲.
+
+Suggested GitHub About: `Stateless Chinese metaphysics calculation engine — BaZi, Zi Wei, Liu Yao, Da Liu Ren, Qi Men, Ba Zhai, Tarot, I Ching — HTTP API + agent CLI.`
+
+AI index: [llms.txt](llms.txt).
+
 ## Documentation
 
 - [docs/api.md](docs/api.md) — HTTP API reference
 - [docs/architecture.md](docs/architecture.md) — architecture and module boundaries
 - [docs/development.md](docs/development.md) — local development
 - [docs/faq.md](docs/faq.md) — FAQ
+- [llms.txt](llms.txt) — AI / answer-engine summary
 - [.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md) — algorithmic semantics and the CLI contract
 - [CONTRIBUTING.md](CONTRIBUTING.md) — development conventions, quality gates, algorithm-change criteria
 - [PRODUCTION.md](PRODUCTION.md) — production deployment and operations

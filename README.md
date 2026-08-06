@@ -3,7 +3,7 @@
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-[English README](README.en.md) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [开发约定](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
+[English README](README.en.md) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [开发约定](CONTRIBUTING.md) · [llms.txt](llms.txt) · [Changelog](CHANGELOG.md)
 
 > 本仓库为开源的术数算法能力层（MIT）。它与带 React 前端的 Web 全栈社区版（公开仓库
 > [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master)，冻结在 `v0.2.0`）是两个完全隔离、
@@ -88,7 +88,7 @@ English summary: **Metaphysics Engine is an open-source divination calculation e
 ### 用 `./bazi`（推荐）
 
 ```bash
-git clone https://github.com/tytsxai-stack/metaphysics-engine.git
+git clone https://github.com/tytsxai/metaphysics-engine.git
 cd metaphysics-engine
 
 ./bazi setup     # 装依赖 + 生成 .env
@@ -103,7 +103,7 @@ cd metaphysics-engine
 ### 手动步骤
 
 ```bash
-git clone https://github.com/tytsxai-stack/metaphysics-engine.git
+git clone https://github.com/tytsxai/metaphysics-engine.git
 cd metaphysics-engine
 
 npm install
@@ -365,12 +365,25 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 - AI 解读依赖外部模型质量、密钥、速率限制和提示词；mock provider 仅用于开发和演示。
 - 反向代理、域名、证书和平台合规需要部署者自行配置与验证。
 
+## 搜索关键词 / Search Keywords
+
+**中文**：Metaphysics Engine、术数算法能力层、八字排盘 API、紫微斗数开源、六爻纳甲引擎、大六壬、奇门遁甲 API、八宅风水、择吉、姓名五格、塔罗 API、周易起卦、合盘、无状态命理引擎、AI Agent 排盘工具、自部署玄学 API。
+
+**English**: Metaphysics Engine, Chinese metaphysics API, BaZi calculation API, Zi Wei Dou Shu API, Liu Yao CLI, Da Liu Ren calculator, Qi Men Dun Jia API, Ba Zhai feng shui, Tarot API, I Ching, Synastry, agent-callable divination CLI, stateless fortune-telling backend, OpenAPI metaphysics.
+
+**GitHub About 建议**：`Stateless Chinese metaphysics calculation engine — BaZi, Zi Wei, Liu Yao, Da Liu Ren, Qi Men, Ba Zhai, Tarot, I Ching — HTTP API + agent CLI.`
+
+**Topics 建议**：`metaphysics-engine` `bazi` `ziwei` `liuyao` `daliuren` `qimen` `bazhai` `tarot` `iching` `divination` `chinese-metaphysics` `openapi` `agent-callable-cli` `self-hosted` `nodejs`
+
+AI 检索摘要：[llms.txt](llms.txt)。
+
 ## 文档 / Documentation
 
 - [docs/api.md](docs/api.md): HTTP API 接口清单
 - [docs/architecture.md](docs/architecture.md): 架构与模块分工
 - [docs/development.md](docs/development.md): 本地开发指南
 - [docs/faq.md](docs/faq.md): 常见问题
+- [llms.txt](llms.txt): AI / 答案引擎可读项目摘要
 - [.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md): 算法语义边界与 CLI 用法
 - [CONTRIBUTING.md](CONTRIBUTING.md): 开发约定、质量门槛与算法改动判据
 - [PRODUCTION.md](PRODUCTION.md): 生产部署与运维

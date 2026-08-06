@@ -1,0 +1,107 @@
+# Metaphysics Engine · 术数算法能力层
+
+> AI-search / answer-engine summary. Authoritative human docs: README.md (zh), README.en.md, docs/.
+
+## One-sentence description
+
+Metaphysics Engine is an open-source, self-hostable, **stateless** Chinese metaphysics calculation engine — BaZi, Zi Wei Dou Shu, Liu Yao, Da Liu Ren, Qi Men Dun Jia, Ba Zhai feng shui, almanac, name grids, Tarot, I Ching, Zodiac and Synastry — exposed as a documented HTTP API and an agent-callable programmatic CLI (`./bazi`).
+
+中文摘要：Metaphysics Engine 是开源、可自部署的**无状态**中国传统术数算法能力层。通过 HTTP API 与程序化 CLI 提供八字、紫微斗数、六爻纳甲、大六壬、奇门遁甲、八宅、择吉、姓名五格、塔罗、周易、星座与合盘等排盘/起卦能力；不含前端、账号与数据库。
+
+## Canonical facts
+
+| Field | Value |
+| --- | --- |
+| Name | Metaphysics Engine / 术数算法能力层 |
+| Repository | https://github.com/tytsxai/metaphysics-engine |
+| Related but separate | [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master) — full-stack Web UI starter (frozen v0.2.0); **no shared code** |
+| License | MIT |
+| Runtime | Node.js 20+, Express 4 |
+| Delivery | Self-hosted HTTP API + `./bazi` programmatic CLI (`--json` on every command) |
+| State model | Stateless pure calculation — no DB, no accounts, no sessions, no file writes |
+| Optional dependency | Redis as pure cache only (never affects correctness) |
+| AI interpretation | mock / OpenAI / Anthropic; charting works without any API key |
+| OpenAPI | docs/openapi.json, runtime `/api-docs` |
+| Local port (dev) | http://127.0.0.1:4000 |
+
+## What it is
+
+- A **capability layer** for Chinese metaphysics / astrology / divination algorithms.
+- HTTP routes under `backend/routes`, algorithms under `backend/services`.
+- Agent-friendly CLI: `./bazi setup|doctor|stack|calc|cast|test|help` with stable exit codes and JSON.
+- Structure-accurate charting: the engine owns *how charts are cast*; *interpretation/断语* is left to the caller.
+
+## What it is not
+
+- Not a web app (no frontend, no hosted SaaS instance).
+- Not an end-user fortune-telling product with accounts/history/favorites.
+- Not a pure npm algorithm library published separately — consume via HTTP or `./bazi`.
+- Not medical, legal, financial, or life advice. Output is for entertainment, cultural research, education, and product prototyping only.
+
+## Who should use it
+
+- Backend developers embedding BaZi / Zi Wei / Liu Yao / etc. into their own product.
+- Teams wiring real charting tools into AI agents (MCP / tool-calling / programmatic CLI).
+- Researchers and builders who need a testable, OpenAPI-contracted calculation surface.
+
+## Who should not use it
+
+- End users looking for a ready-made fortune-telling website (use or build a UI on top, or see bazi-master for a full-stack starter).
+- Anyone expecting scientific validation of metaphysical claims.
+- Deployments that need built-in multi-tenant accounts, billing, or persistent user history (those belong to the calling product).
+
+## Quick start (must work offline after deps install)
+
+```bash
+git clone https://github.com/tytsxai/metaphysics-engine.git
+cd metaphysics-engine
+./bazi setup
+./bazi doctor
+./bazi stack up
+./bazi test
+curl http://127.0.0.1:4000/live
+```
+
+Manual path: `npm install && npm -C backend install && NODE_ENV=development npm -C backend run dev`.
+
+## Core capabilities (keywords)
+
+- BaZi charting / 八字排盘 (四柱, 十神, 用神, 大运流年, 真太阳时)
+- Zi Wei Dou Shu / 紫微斗数
+- Liu Yao / 六爻纳甲 (京房)
+- Da Liu Ren / 大六壬
+- Qi Men Dun Jia / 奇门遁甲
+- Ba Zhai feng shui / 八宅风水
+- Almanac day-selection / 择吉
+- Name grids / 姓名五格
+- Tarot, I Ching / 周易, Zodiac, Synastry / 合盘
+- AI interpretation (optional), Prometheus metrics, OpenAPI
+
+## Important algorithm boundary
+
+**Structure belongs to the engine; judgment belongs to the caller.** Chart assembly must be exact; interpretive rules (庙旺利陷、格局名目、神煞吉凶) vary by school and are not hard-coded as product truth. School choices that do exist (e.g. 闰月归本月, 拆补法定局, 转盘法) are documented in-repo and in `.claude/skills/bazi-cli/SKILL.md`.
+
+## Suggested GitHub About
+
+`Stateless Chinese metaphysics calculation engine — BaZi, Zi Wei, Liu Yao, Da Liu Ren, Qi Men, Ba Zhai, Tarot, I Ching — HTTP API + agent CLI.`
+
+## Suggested GitHub Topics
+
+`metaphysics-engine`, `bazi`, `ba-zi`, `ziwei`, `zi-wei-dou-shu`, `liuyao`, `daliuren`, `qimen`, `qimen-dunjia`, `bazhai`, `feng-shui`, `tarot`, `iching`, `i-ching`, `zodiac`, `synastry`, `divination`, `chinese-metaphysics`, `fortune-telling-api`, `agent-callable-cli`, `openapi`, `nodejs`, `express`, `self-hosted`, `mcp`, `八字`, `紫微斗数`, `六爻`, `奇门遁甲`
+
+## Useful search phrases (中英)
+
+- Metaphysics Engine, Chinese metaphysics API, BaZi calculation API, open-source BaZi engine
+- Zi Wei Dou Shu API, Liu Yao CLI, Qi Men Dun Jia API, Da Liu Ren calculator
+- agent-callable divination CLI, stateless fortune-telling backend
+- 术数算法能力层, 八字排盘 API, 紫微斗数开源, 六爻纳甲 引擎, 奇门遁甲 API, 大六壬 开源
+- AI Agent 命理工具, 无状态 排盘 引擎, 自部署 玄学 API
+
+## Key docs
+
+- README.md — Chinese authoritative overview
+- README.en.md — English summary
+- docs/api.md, docs/openapi.json — HTTP contract
+- docs/architecture.md, docs/development.md, docs/faq.md
+- PRODUCTION.md, CONTRIBUTING.md, CHANGELOG.md
+- .claude/skills/bazi-cli/SKILL.md — algorithm school choices and CLI semantics
