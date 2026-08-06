@@ -1,19 +1,19 @@
 # Metaphysics Engine · 术数算法能力层
 
 [![Node.js](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](https://nodejs.org)
-[![Private](https://img.shields.io/badge/repo-private-lightgrey.svg)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 [English README](README.en.md) · [API Docs](docs/api.md) · [Architecture](docs/architecture.md) · [开发约定](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
-> 本仓库为私有能力层。它与带 React 前端的 Web 全栈社区版（公开仓库
+> 本仓库为开源的术数算法能力层（MIT）。它与带 React 前端的 Web 全栈社区版（公开仓库
 > [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master)，冻结在 `v0.2.0`）是两个完全隔离、
 > 互不同步的独立仓库：算法口径、CLI 能力与 MCP 接入均不共享，也不沿用那条线的任何代码或资产。
 
-Metaphysics Engine 是一个私有的命理计算引擎，把中国传统术数的排盘能力——八字（BaZi）、紫微斗数（Zi Wei Dou Shu）、六爻纳甲（Liu Yao）、大六壬（Da Liu Ren）、奇门遁甲（Qi Men Dun Jia）、八宅风水（Ba Zhai）、择吉（almanac）、姓名五格——连同塔罗、周易起卦、星座与上升星座、合盘分析和 AI 解读，收敛成一套文档化的 HTTP API 和一个面向 Agent 的程序化 CLI。
+Metaphysics Engine 是一个开源的命理计算引擎，把中国传统术数的排盘能力——八字（BaZi）、紫微斗数（Zi Wei Dou Shu）、六爻纳甲（Liu Yao）、大六壬（Da Liu Ren）、奇门遁甲（Qi Men Dun Jia）、八宅风水（Ba Zhai）、择吉（almanac）、姓名五格——连同塔罗、周易起卦、星座与上升星座、合盘分析和 AI 解读，收敛成一套文档化的 HTTP API 和一个面向 Agent 的程序化 CLI。
 
 它是**算法能力层**，不是网页应用，也不服务 C 端用户：界面、账号、持久化都属于调用方。引擎本身是无状态纯计算——不存数据、不认用户、没有数据库。
 
-English summary: **Metaphysics Engine is a private divination calculation engine** covering the traditional Chinese canon — BaZi, Zi Wei Dou Shu, Liu Yao (King Fang stem-branch attachment), Da Liu Ren, Qi Men Dun Jia, Ba Zhai feng shui, almanac day-selection and name grids — plus Tarot, I Ching, Zodiac and Synastry. Exposed as a documented HTTP API and an agent-callable CLI. Stateless pure calculation — no database, no accounts, no UI. Node.js / Express, optional Redis cache, pluggable AI providers, OpenAPI contract.
+English summary: **Metaphysics Engine is an open-source divination calculation engine** covering the traditional Chinese canon — BaZi, Zi Wei Dou Shu, Liu Yao (King Fang stem-branch attachment), Da Liu Ren, Qi Men Dun Jia, Ba Zhai feng shui, almanac day-selection and name grids — plus Tarot, I Ching, Zodiac and Synastry. Exposed as a documented HTTP API and an agent-callable CLI. Stateless pure calculation — no database, no accounts, no UI. Node.js / Express, optional Redis cache, pluggable AI providers, OpenAPI contract.
 
 **目录**：[项目定位](#项目定位--project-snapshot) · [核心能力](#核心能力--core-capabilities) · [快速开始](#快速开始--quick-start) · [调用示例](#调用示例--usage-examples) · [接口速查](#接口速查--api-endpoints) · [适用场景](#适用场景--use-cases) · [技术栈](#技术栈--tech-stack) · [环境变量](#环境变量--configuration) · [FAQ](#faq--常见问题) · [项目结构](#项目结构--repository-structure) · [测试](#测试--testing) · [生产部署](#部署与生产注意事项--production-notes) · [开发约定](#开发约定--development) · [限制](#限制与免责声明--limitations)
 
@@ -21,7 +21,7 @@ English summary: **Metaphysics Engine is a private divination calculation engine
 
 | 维度         | 说明                                                                                     |
 | ------------ | ---------------------------------------------------------------------------------------- |
-| 项目类型     | 玄学 / 占星 / 命理**算法能力层**（私有），以自部署 HTTP API + 程序化 CLI 交付            |
+| 项目类型     | 玄学 / 占星 / 命理**算法能力层**（开源 MIT），以自部署 HTTP API + 程序化 CLI 交付            |
 | 解决问题     | 把命理算法里那些「写错也不会报错」的语义边界做成可测试、有契约、可被程序调用的能力       |
 | 适合谁       | 要给产品接命理计算的后端开发者，以及要给 AI Agent 接一个真实排盘工具的团队               |
 | 消费方式     | 直接调 HTTP API；用 `./bazi calc` / `./bazi cast`；或作为 agent tool 接入                |
@@ -33,7 +33,7 @@ English summary: **Metaphysics Engine is a private divination calculation engine
 | 开发入口     | 仓库根 `./bazi` 程序化 CLI：算法调用、环境准备、起停引擎、测试，全部支持 `--json`        |
 | 主要入口     | API 路由在 `backend/routes`；算法逻辑在 `backend/services`                               |
 | 接口契约     | OpenAPI 描述在 [docs/openapi.json](docs/openapi.json)，运行时挂在 `/api-docs`，CI 守快照 |
-| 许可证       | 专有，保留所有权利。见 [LICENSE](LICENSE)                                                |
+| 许可证       | MIT。见 [LICENSE](LICENSE)                                                                |
 | 重要限制     | 输出仅适合娱乐、文化研究或产品原型验证；不要当作医疗、法律、投资、人生决策建议           |
 
 ### 这不是什么 / What it is not
@@ -286,7 +286,7 @@ curl -X POST http://127.0.0.1:4000/api/tarot/draw \
 
 ### 许可证是什么？
 
-专有软件，保留所有权利，见 [LICENSE](LICENSE)。需要注意的是这里有一条历史边界：截至提交
+MIT License，见 [LICENSE](LICENSE)。历史边界：截至提交
 `9d9fe52` 的那一版曾以 MIT 发布在 [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master)，
 那份授权不可撤回；此后的开发——六爻纳甲、大六壬、奇门遁甲、八宅、择吉、姓名五格，紫微安星重写与
 八字旺衰、节气、真太阳时的修正，以及能力 CLI / tool schema / MCP server——从未以 MIT 发布过。
@@ -378,5 +378,5 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 
 ## License
 
-专有软件，保留所有权利。见 [LICENSE](LICENSE)——其中写明了哪一部分代码曾以 MIT 发布、
+MIT License。见 [LICENSE](LICENSE)——其中仍说明与 bazi-master 的历史边界：哪一部分代码曾单独以 MIT 发布、
 边界在哪个提交。
