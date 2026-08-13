@@ -142,32 +142,51 @@ describe('择日历注', () => {
   it('非法日期返回 null', () => {
     assert.equal(buildAlmanac({ year: 'x', month: 1, day: 1 }), null);
   });
+
+  it('年柱以立春为界，不是春节', () => {
+    // 2020 春节约 1/25，立春约 2/4。1/30 已过春节、未过立春 → 年柱仍己亥
+    const r = buildAlmanac({ year: 2020, month: 1, day: 30 });
+    assert.equal(r.ganzhi.year, '己亥', '春节后立春前应属上一年干支');
+  });
 });
 
 describe('姓名五格', () => {
-  it('单姓单名：天格姓加一，地格名加一', () => {
-    // 姓 7 画、名 8 画
+  it('单姓单名：天格姓加一，地格名加一，外格恒为 2', () => {
+    // 姓 7 画、名 8 画。主流五格：外格 = 天+地−人 = 8+9−15 = 2
     const r = buildNameGrids([7], [8]);
     assert.equal(r.grids.heaven, 8, '单姓天格为姓加一');
     assert.equal(r.grids.human, 15, '人格为姓末字加名首字');
     assert.equal(r.grids.earth, 9, '单名地格为名加一');
     assert.equal(r.grids.total, 15);
-    assert.equal(r.grids.outer, r.grids.total - r.grids.human + 1);
+    assert.equal(r.grids.outer, 2, '单姓单名外格恒为 2');
+    assert.equal(r.grids.outer, r.grids.heaven + r.grids.earth - r.grids.human);
   });
 
-  it('单姓双名', () => {
+  it('单姓双名：外格为名末字加一', () => {
     const r = buildNameGrids([7], [8, 9]);
     assert.equal(r.grids.heaven, 8);
     assert.equal(r.grids.human, 15);
     assert.equal(r.grids.earth, 17, '双名地格为两字之和');
     assert.equal(r.grids.total, 24);
+    assert.equal(r.grids.outer, 10, '单姓双名外格 = 名末 + 1');
+    assert.equal(r.grids.outer, r.grids.heaven + r.grids.earth - r.grids.human);
   });
 
-  it('复姓：天格为两字之和', () => {
+  it('复姓单名：外格为姓首字加一', () => {
     const r = buildNameGrids([5, 6], [8]);
     assert.equal(r.grids.heaven, 11);
     assert.equal(r.grids.human, 14, '人格取姓之末字');
     assert.equal(r.grids.total, 19);
+    assert.equal(r.grids.outer, 6, '复姓单名外格 = 姓首 + 1');
+  });
+
+  it('复姓双名：外格为姓首+名末', () => {
+    const r = buildNameGrids([5, 6], [8, 9]);
+    assert.equal(r.grids.heaven, 11);
+    assert.equal(r.grids.human, 14);
+    assert.equal(r.grids.earth, 17);
+    assert.equal(r.grids.outer, 14, '复姓双名外格 = 姓首 + 名末');
+    assert.equal(r.grids.outer, r.grids.heaven + r.grids.earth - r.grids.human);
   });
 
   it('五行按个位取，三才为天人地', () => {

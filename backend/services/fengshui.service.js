@@ -15,6 +15,7 @@ import {
   GROUP_NAMES,
   NUMBER_ELEMENTS,
 } from '../constants/bazhai.js';
+import { normalizeGender } from '../utils/validation.js';
 import { getElementRelation } from './bazi.service.js';
 import { resolveLiChun, resolveLiChunYear } from './jieqi.service.js';
 
@@ -80,7 +81,9 @@ export const resolveLifeTrigram = (
     lichunAt = lichun ? lichun.iso : null;
   }
 
-  const male = String(gender || '').toLowerCase() === 'male';
+  const normalizedGender = normalizeGender(gender);
+  if (!normalizedGender) return null;
+  const male = normalizedGender === 'male';
   const root = digitalRoot(year);
   let number = male ? 11 - root : root + 4;
   if (number > 9) number -= 9;
@@ -168,7 +171,11 @@ export const buildAlmanac = ({ year, month, day }) => {
   return {
     date: { year: y, month: m, day: d },
     ganzhi: {
-      year: lunar.getYearInGanZhi(),
+      // 术数通书年柱以立春为界，不是春节。春节后、立春前仍属上一年干支。
+      year:
+        typeof lunar.getYearInGanZhiByLiChun === 'function'
+          ? lunar.getYearInGanZhiByLiChun()
+          : lunar.getYearInGanZhi(),
       month: lunar.getMonthInGanZhi(),
       day: lunar.getDayInGanZhi(),
     },
@@ -218,7 +225,10 @@ export const buildNameGrids = (surnameStrokes, givenNameStrokes) => {
   // 单名地格加一虚位
   const earth = given.length === 1 ? given[0] + 1 : sum(given);
   const total = sum(surname) + sum(given);
-  const outer = total - human + 1;
+  // 外格 = 天格 + 地格 − 人格（等价于：单姓单名恒为 2；单姓双名 = 名末+1；
+  // 复姓单名 = 姓首+1；复姓双名 = 姓首+名末）。
+  // 旧式 total − human + 1 在单姓单名得 1、复姓双名多 1，个位五行会静默偏一档。
+  const outer = heaven + earth - human;
 
   const toElement = (n) => NUMBER_ELEMENTS[n % 10];
   const grids = { heaven, human, earth, outer, total };

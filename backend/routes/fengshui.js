@@ -1,6 +1,7 @@
 import { logger } from '../config/logger.js';
 import express from 'express';
 
+import { normalizeGender } from '../utils/validation.js';
 import { buildBazhaiChart, buildAlmanac, buildNameGrids } from '../services/fengshui.service.js';
 
 const router = express.Router();
@@ -13,7 +14,8 @@ router.post('/bazhai', (req, res) => {
   if (!Number.isInteger(year) || year < 1 || year > 9999) {
     return fail(res, 'birthYear is required.');
   }
-  if (!gender) return fail(res, 'gender is required.');
+  const normalizedGender = normalizeGender(gender);
+  if (!normalizedGender) return fail(res, 'gender must be male or female.');
   if (birthHour !== undefined && birthHour !== null) {
     const hour = Number(birthHour);
     if (!Number.isInteger(hour) || hour < 0 || hour > 23) {
@@ -36,7 +38,7 @@ router.post('/bazhai', (req, res) => {
       birthDay,
       birthHour,
       birthMinute,
-      gender,
+      gender: normalizedGender,
     });
     if (!chart) return fail(res, 'Unable to resolve life trigram.');
     return res.json(chart);
