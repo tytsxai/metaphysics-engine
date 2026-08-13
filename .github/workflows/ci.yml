@@ -167,7 +167,7 @@ jobs:
           done
 
           echo "engine never became live" >&2
-          docker logs bazi-ci >&2
+          docker logs metaphysics-ci >&2
           exit 1
 
       - name: Probe endpoints answer as documented
@@ -247,11 +247,11 @@ jobs:
       - name: Graceful shutdown leaves a clean exit code
         run: |
           set -euo pipefail
-          docker stop -t 30 bazi-ci >/dev/null
-          code=$(docker inspect -f '{{.State.ExitCode}}' bazi-ci)
+          docker stop -t 30 metaphysics-ci >/dev/null
+          code=$(docker inspect -f '{{.State.ExitCode}}' metaphysics-ci)
           echo "container exit code: ${code}"
           [ "$code" = "0" ]
 
       - name: Container logs
         if: always()
-        run: docker logs bazi-ci || true
+        run: docker logs metaphysics-ci || true
