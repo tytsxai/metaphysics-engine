@@ -112,8 +112,10 @@ const baziCommand = defineCommand({
   summary: '八字排盘：四柱、五行、十神、大运',
   description:
     '纯计算，不写任何状态。\n' +
-    '给了 --location 与 --timezone 时，四柱按**真太阳时**排 —— 校正量在中国西部可超过两小时，' +
-    '足以把时柱推到隔壁一柱；不给则按钟表时间排。响应的 chartTime 会回显实际所用时刻。',
+    '时间以中国为主：输入默认按北京时间墙钟。给了 --location 时中国地点自动按 Asia/Shanghai 做' +
+    '**真太阳时**（西部可回拨两小时以上，足以改时柱）；海外须显式 --timezone。\n' +
+    '海外出生一张盘吃两个时刻：年月柱换算到东八区比节气（chartTime.termReference），' +
+    '日时柱按当地时辰（chartTime.used）。国内两者相同。trueSolarTime: false 可关校正。',
   flags: BIRTH_FLAGS,
   examples: [
     { note: '最小调用', command: 'bazi calc bazi --birth 1990-05-20T14:30 --gender male --json' },
