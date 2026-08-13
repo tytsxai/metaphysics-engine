@@ -78,14 +78,12 @@ describe('真太阳时参与排盘', () => {
     assert.equal(resolved.hour, 10);
   });
 
-  it('缺时区偏移时不敢擅自校正', () => {
+  it('中国坐标缺时区时默认北京时间并做真太阳时', () => {
+    // 43.8°N 87.6°E 落在中国；时间体系以中国为主，不再因缺 timezone 放弃校正
     const resolved = resolveChartTime({ ...BASE, birthLocation: '43.8,87.6' });
-    // buildBirthTimeMeta 取不到偏移就退回钟表时间，而不是假设 UTC
-    if (resolved.trueSolarTime) {
-      assert.ok(Number.isFinite(resolved.trueSolarTime.correctionMinutes));
-    } else {
-      assert.equal(resolved.hour, 10);
-    }
+    assert.ok(resolved.trueSolarTime?.applied);
+    assert.equal(resolved.trueSolarTime.timezoneDefaulted, 'Asia/Shanghai');
+    assert.ok(resolved.hour < 10, '西部应回拨');
   });
 
   it('排盘结果带出所用时刻，便于调用方核对', () => {

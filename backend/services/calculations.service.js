@@ -5,6 +5,8 @@ import {
   describeLocationResolution,
   computeTrueSolarTime,
   listKnownLocations,
+  isChinaLocation,
+  DEFAULT_CHINA_TIMEZONE,
 } from './solarTime.service.js';
 
 export {
@@ -13,6 +15,8 @@ export {
   describeLocationResolution,
   computeTrueSolarTime,
   listKnownLocations,
+  isChinaLocation,
+  DEFAULT_CHINA_TIMEZONE,
 };
 
 import {
@@ -25,9 +29,47 @@ import {
   parseTimezoneOffsetMinutes,
   formatTimezoneOffset,
   buildBirthTimeMeta,
+  getOffsetMinutesFromTimeZone,
 } from '../utils/timezone.js';
+import { normalizeGender } from '../utils/validation.js';
 import { analyzeChart, getTenGod } from './bazi.service.js';
 import { getNayin, detectBranchRelations } from './ganzhi.service.js';
+
+/** 晚子时不换日（日柱当日、时干按次日遁）。钉死，避免库默认变更时全站静默翻派。 */
+const BAZI_DAY_SECT = 2;
+
+/**
+ * 把「某时区的墙钟数字」换算成 Asia/Shanghai 墙钟数字。
+ * lunar-javascript 的节气表是东八区墙钟语义；海外出生必须先换到这个坐标系再排盘。
+ *
+ * 中国墙钟不二次换算：IANA 中国区或裸 +8。裸 +9 / 东京 / 首尔必须换算，
+ * 否则会把日韩时间当中国排盘，交节日可错年柱。
+ */
+const CHINA_IANA = /^(Asia\/(Shanghai|Chongqing|Harbin|Kashgar|Urumqi)|PRC)$/i;
+
+const isChinaWallClockInput = (data, offsetMinutes) => {
+  if (typeof data?.timezone === 'string' && CHINA_IANA.test(data.timezone.trim())) return true;
+  return offsetMinutes === 480;
+};
+
+const wallClockToShanghai = (wall, offsetMinutes, data = {}) => {
+  if (!Number.isFinite(offsetMinutes)) return { ...wall };
+  if (isChinaWallClockInput(data, offsetMinutes)) return { ...wall };
+  const absMs =
+    Date.UTC(wall.year, wall.month - 1, wall.day, wall.hour, wall.minute, 0) -
+    offsetMinutes * 60 * 1000;
+  const shOffset = getOffsetMinutesFromTimeZone('Asia/Shanghai', new Date(absMs));
+  if (!Number.isFinite(shOffset)) return { ...wall };
+  const shMs = absMs + shOffset * 60 * 1000;
+  const d = new Date(shMs);
+  return {
+    year: d.getUTCFullYear(),
+    month: d.getUTCMonth() + 1,
+    day: d.getUTCDate(),
+    hour: d.getUTCHours(),
+    minute: d.getUTCMinutes(),
+  };
+};
 
 // Pinyin and Element mappings for Stems (TianGan)
 export const STEMS_MAP = {
@@ -127,99 +169,168 @@ export function buildPillar(ganChar, zhiChar) {
 /**
  * 定出用于排盘的实际时刻。
  *
- * 真太阳时此前只作为响应里的一段 metadata，排盘仍吃原始 birthHour —— 等于算了不用。
- * 现在只要能解析出出生地经度且知道时区偏移，就用校正后的时刻排盘：经度每偏离标准经线
- * 1 度差 4 分钟，跨时区大国里足以把时柱推到隔壁一柱去。
+ * **时间体系以中国为主**（命理实务默认）：
  *
- * 传 trueSolarTime: false 可显式关闭，退回按钟表时间排盘。
+ * 1. **输入墙钟默认是中国民用时间**（北京时间 / 东八区语义）。不给 timezone 时，
+ *    年月日时数字直接进 lunar-javascript 节气表，与国内主流排盘一致。
+ * 2. **中国出生地 + 缺时区 → 默认 Asia/Shanghai**。全国钟表统一按北京时间记录，
+ *    真太阳时只靠经度相对 120°E 回拨；乌鲁木齐等西部也走这条，不必再传 timezone。
+ * 3. **海外必须显式传 timezone**。给了非中国 IANA 时，先换算成东八区墙钟再比节气，
+ *    否则交节日会错年/月。
+ * 4. **真太阳时**：有经度且有时区偏移（含中国默认）时参与排盘；
+ *    `trueSolarTime: false` 可关。
  */
 export const resolveChartTime = (data) => {
   const minute = coerceInt(data.birthMinute) ?? 0;
 
-  // 时区先算出来 —— 诊断要报的是"校正的最终下场"，而缺时区同样会让校正落空。
-  // 先建诊断再算时区的话，一个查得到的地名会被报成 applied，而排盘用的其实是钟表时间。
+  const clock = {
+    year: data.birthYear,
+    month: data.birthMonth,
+    day: data.birthDay,
+    hour: data.birthHour || 0,
+    minute,
+  };
+
+  const location =
+    data.trueSolarTime === false ? null : resolveLocationCoordinates(data.birthLocation);
+
+  // 中国为主：中国地点未给时区时默认北京时间，真太阳时才能落地
+  let timezone = data.timezone;
+  let timezoneOffsetMinutes = data.timezoneOffsetMinutes;
+  let timezoneDefaulted = false;
+  const explicitTz =
+    (typeof timezone === 'string' && timezone.trim()) ||
+    Number.isFinite(Number(timezoneOffsetMinutes));
+  if (!explicitTz && location && isChinaLocation(location) && data.trueSolarTime !== false) {
+    timezone = DEFAULT_CHINA_TIMEZONE;
+    timezoneDefaulted = true;
+  }
+
   const meta = buildBirthTimeMeta({
     birthYear: data.birthYear,
     birthMonth: data.birthMonth,
     birthDay: data.birthDay,
     birthHour: data.birthHour,
     birthMinute: minute,
-    timezone: data.timezone,
-    timezoneOffsetMinutes: data.timezoneOffsetMinutes,
+    timezone,
+    timezoneOffsetMinutes,
   });
 
-  const base = {
-    year: data.birthYear,
-    month: data.birthMonth,
-    day: data.birthDay,
-    hour: data.birthHour || 0,
-    minute,
-    trueSolarTime: null,
-    locationResolution: describeLocationResolution({
-      ...data,
-      timezoneOffsetMinutes: meta?.timezoneOffsetMinutes ?? null,
-    }),
-  };
+  const effectiveData = { ...data, timezone, timezoneOffsetMinutes: meta?.timezoneOffsetMinutes };
+  const locationResolution = describeLocationResolution({
+    ...effectiveData,
+    birthLocation: data.birthLocation,
+    timezoneOffsetMinutes: meta?.timezoneOffsetMinutes ?? null,
+  });
+  if (timezoneDefaulted && locationResolution.status === 'applied') {
+    locationResolution.timezoneDefaulted = DEFAULT_CHINA_TIMEZONE;
+    locationResolution.hint =
+      locationResolution.hint ||
+      `未传 timezone，中国地点已默认 ${DEFAULT_CHINA_TIMEZONE}（北京时间）做真太阳时。`;
+  }
 
-  if (data.trueSolarTime === false) return base;
+  const offset = meta?.timezoneOffsetMinutes;
+  const hasTz = Number.isFinite(offset);
 
-  const location = resolveLocationCoordinates(data.birthLocation);
-  if (!location) return base;
+  /**
+   * 排盘要的是**两个**时刻，不是一个：
+   *
+   * - 顶层 year/month/day/hour/minute 是**当地**时刻（含真太阳时校正）。日柱与时柱
+   *   按它定 —— 时辰本就是当地太阳位置，纽约中午必须是午时。
+   * - `termReference` 是同一时刻换算成的**东八区墙钟**。年柱月柱看节气，节气是绝对
+   *   时刻而 lunar-javascript 的节气表是东八区语义，不换算则交节日会错年/月。
+   *
+   * 中国墙钟两者相同（wallClockToShanghai 原样返回），国内路径行为不变。
+   */
+  const termOf = (wall) => (hasTz ? wallClockToShanghai(wall, offset, effectiveData) : { ...wall });
 
-  if (!Number.isFinite(meta?.timezoneOffsetMinutes)) return base;
+  const resolved = (wall, extra) => ({ ...wall, termReference: termOf(wall), ...extra });
 
+  if (data.trueSolarTime === false) {
+    return resolved(clock, {
+      trueSolarTime: null,
+      locationResolution: describeLocationResolution({
+        ...data,
+        timezoneOffsetMinutes: meta?.timezoneOffsetMinutes ?? null,
+      }),
+    });
+  }
+
+  if (!location || !hasTz) {
+    return resolved(clock, { trueSolarTime: null, locationResolution });
+  }
+
+  // 真太阳时在输入墙钟上校正（中国默认相对 120°E）
   const corrected = computeTrueSolarTime({
-    birthYear: data.birthYear,
-    birthMonth: data.birthMonth,
-    birthDay: data.birthDay,
-    birthHour: data.birthHour,
-    birthMinute: minute,
-    timezoneOffsetMinutes: meta.timezoneOffsetMinutes,
+    birthYear: clock.year,
+    birthMonth: clock.month,
+    birthDay: clock.day,
+    birthHour: clock.hour,
+    birthMinute: clock.minute,
+    timezoneOffsetMinutes: offset,
     longitude: location.longitude,
   });
-  if (!corrected?.corrected) return base;
+  if (!corrected?.corrected) {
+    return resolved(clock, { trueSolarTime: null, locationResolution });
+  }
 
-  return {
-    year: corrected.corrected.year,
-    month: corrected.corrected.month,
-    day: corrected.corrected.day,
-    hour: corrected.corrected.hour,
-    minute: corrected.corrected.minute,
-    locationResolution: base.locationResolution,
+  return resolved(corrected.corrected, {
+    locationResolution,
     trueSolarTime: {
       applied: true,
       correctionMinutes: corrected.correctionMinutes,
       longitudeCorrection: corrected.longitudeCorrection,
       eotCorrection: corrected.eotCorrection,
-      // clockTime 是「校正前的那个时刻」，只该有时刻本身：诊断字段属于 chartTime 顶层，
-      // 复制进来会变成同一份数据在响应里出现两次。
-      clockTime: { ...base, trueSolarTime: undefined, locationResolution: undefined },
+      timezoneDefaulted: timezoneDefaulted ? DEFAULT_CHINA_TIMEZONE : null,
+      // clockTime 是「校正前的输入墙钟」，只该有时刻本身
+      clockTime: { ...clock },
       location: {
         name: location.name || null,
         cn: location.cn ?? null,
+        region: location.region || (isChinaLocation(location) ? 'cn' : null),
         latitude: location.latitude,
         longitude: location.longitude,
       },
     },
-  };
+  });
 };
 
 export const performCalculation = (data) => {
-  const { gender } = data;
+  // 性别必须已是 male/female；非法值不静默当女（会反转大运顺逆）
+  const gender = normalizeGender(data.gender);
+  if (!gender) {
+    throw new Error('gender must be male or female');
+  }
   const chartTime = resolveChartTime(data);
-  const solar = Solar.fromYmdHms(
-    chartTime.year,
-    chartTime.month,
-    chartTime.day,
-    chartTime.hour,
-    chartTime.minute,
-    0
-  );
-  const lunar = solar.getLunar();
-  const eightChar = lunar.getEightChar();
 
-  const yearPillar = buildPillar(eightChar.getYearGan(), eightChar.getYearZhi());
-  const monthPillar = buildPillar(eightChar.getMonthGan(), eightChar.getMonthZhi());
+  // 显式钉死晚子时不换日，不依赖库默认 sect
+  const buildEightChar = (t) => {
+    const ec = Solar.fromYmdHms(t.year, t.month, t.day, t.hour, t.minute, 0)
+      .getLunar()
+      .getEightChar();
+    if (typeof ec.setSect === 'function') ec.setSect(BAZI_DAY_SECT);
+    return ec;
+  };
+
+  /**
+   * 日时柱按**当地**时刻，年月柱与大运按换算到东八区的时刻 —— 见 resolveChartTime。
+   * 中国墙钟两者是同一时刻，此时复用同一个 eightChar，国内路径与从前逐字节一致。
+   */
+  const term = chartTime.termReference || chartTime;
+  const sameFrame =
+    term.year === chartTime.year &&
+    term.month === chartTime.month &&
+    term.day === chartTime.day &&
+    term.hour === chartTime.hour &&
+    term.minute === chartTime.minute;
+
+  const eightChar = buildEightChar(chartTime);
+  const termEightChar = sameFrame ? eightChar : buildEightChar(term);
+
+  // 年月柱看节气（绝对时刻），日时柱看当地时辰。各自的干支推导都在同一个对象内闭合：
+  // 月干由年干起五虎遁、时干由日干起五鼠遁，跨对象取不会串。
+  const yearPillar = buildPillar(termEightChar.getYearGan(), termEightChar.getYearZhi());
+  const monthPillar = buildPillar(termEightChar.getMonthGan(), termEightChar.getMonthZhi());
   const dayPillar = buildPillar(eightChar.getDayGan(), eightChar.getDayZhi());
   const hourPillar = buildPillar(eightChar.getTimeGan(), eightChar.getTimeZhi());
 
@@ -312,7 +423,9 @@ export const performCalculation = (data) => {
   }));
 
   const genderInt = gender === 'male' ? 1 : 0;
-  const yun = eightChar.getYun(genderInt);
+  // sect=2：按分钟折算起运（4320 分=1 年），比默认时辰法更贴近主流网盘交运日。
+  // 起运是「到交节还差多久」，是绝对时长，故与年月柱同取东八区那个坐标系。
+  const yun = termEightChar.getYun(genderInt, 2);
   const daYunArr = yun.getDaYun();
   const dayMasterForLuck = eightChar.getDayGan();
   // daYunArr[0] 是起运之前的那段（只行小运，无大运干支），故自 1 起取八步。
@@ -380,6 +493,12 @@ export const performCalculation = (data) => {
         hour: chartTime.hour,
         minute: chartTime.minute,
       },
+      /**
+       * `used` 换算成东八区墙钟的样子 —— 年柱月柱与起运就是拿它去比节气的。
+       * 中国墙钟与 `used` 相同；海外出生两者会差出整整一个时区，
+       * 日时柱按 `used`（当地时辰）、年月柱按这里，两个都要能被核对。
+       */
+      termReference: chartTime.termReference || null,
       trueSolarTime: chartTime.trueSolarTime,
       /**
        * 出生地为什么没能参与排盘 —— `trueSolarTime: null` 把「没填」「关掉了」

@@ -176,7 +176,8 @@ describe('真太阳时校正下场的诊断', () => {
    * 地名查得到 ≠ 校正生效。没有时区偏移就算不出标准经线，排盘照样退回钟表时间 ——
    * 一个只报"地名解析成功"的诊断字段会在这里亲手制造它本来要消除的那种静默。
    */
-  it('地名认得但缺时区时报 no-timezone，而不是谎报已校正', () => {
+  it('中国地点缺时区时默认 Asia/Shanghai，真太阳时生效', () => {
+    // 时间体系以中国为主：国内出生只给地点即可，不必再传 timezone
     const chart = performCalculation({
       birthYear: 1990,
       birthMonth: 5,
@@ -186,12 +187,25 @@ describe('真太阳时校正下场的诊断', () => {
       birthLocation: '乌鲁木齐',
       // 不给 timezone / timezoneOffsetMinutes
     });
-    assert.equal(chart.chartTime.locationResolution.status, 'no-timezone');
-    assert.equal(chart.chartTime.trueSolarTime, null, '缺时区时校正不该生效');
-    assert.equal(chart.chartTime.used.hour, 10, '应退回钟表时间');
-    assert.match(chart.chartTime.locationResolution.hint, /timezone/);
-    // 认出来了这件事仍然要说，否则调用方会以为是地名写错了
+    assert.equal(chart.chartTime.locationResolution.status, 'applied');
+    assert.ok(chart.chartTime.trueSolarTime?.applied, '中国地点应默认北京时间做真太阳时');
+    assert.equal(chart.chartTime.trueSolarTime.timezoneDefaulted, 'Asia/Shanghai');
+    assert.ok(chart.chartTime.used.hour < 10, '西部应显著回拨');
     assert.equal(chart.chartTime.locationResolution.matched.cn, '乌鲁木齐');
+  });
+
+  it('海外地点缺时区仍不擅自校正', () => {
+    const chart = performCalculation({
+      birthYear: 1990,
+      birthMonth: 5,
+      birthDay: 12,
+      birthHour: 10,
+      gender: 'male',
+      birthLocation: 'New York',
+    });
+    assert.equal(chart.chartTime.locationResolution.status, 'no-timezone');
+    assert.equal(chart.chartTime.trueSolarTime, null);
+    assert.equal(chart.chartTime.used.hour, 10);
   });
 
   it('认不出时给出可执行的下一步，并回显原始输入', () => {

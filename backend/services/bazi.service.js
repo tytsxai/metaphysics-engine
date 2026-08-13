@@ -202,10 +202,13 @@ export const determineStrength = (pillars, dayMasterStem) => {
         strength: { primary: 'strong', middle: 'medium', residual: 'weak' }[hidden.role] || null,
       }));
 
-  // 得令：月支藏干中是否有日主的同党
+  // 月令同党根（比劫+印）：调用方论「得生/得气」可用
   const monthBranch = pillars.month?.charBranch;
   const seasonalRoots = rootsOf(monthBranch);
   const hasSeasonalSupport = seasonalRoots.length > 0;
+  // 得令（严口径）：月令本气与日主同五行。印星得月算得生，不算得令。
+  const monthPrimary = getHiddenStems(monthBranch).find((h) => h.role === 'primary');
+  const hasSeasonalCommand = !!monthPrimary && STEMS_MAP[monthPrimary.stem]?.element === dmElement;
 
   // 得地：年日时三支中通根者
   const roots = ['year', 'day', 'hour']
@@ -222,8 +225,14 @@ export const determineStrength = (pillars, dayMasterStem) => {
     totalScore: total,
     ratio: Math.round(ratio * 1000) / 1000,
     allyElements,
+    /**
+     * 月支藏干含日主同党（比劫或印）。偏宽，不等于严格「得令」。
+     * 严格得令看 hasSeasonalCommand。
+     */
     hasSeasonalSupport,
-    /** 月令里的同党藏干及其强弱。空数组即失令。 */
+    /** 月令本气与日主同五行（严口径得令）。 */
+    hasSeasonalCommand,
+    /** 月令里的同党藏干及其强弱。空数组即月令无同党。 */
     seasonalRoots,
     rootedIn,
     /** 年日时三支的通根明细，含本气/中气/余气之别。 */
@@ -303,7 +312,12 @@ export const detectShensha = (pillars) => {
     });
   };
 
+  // 天乙贵人：日干、年干都查（通书两起；落点可能不同，分 basis 列出）
+  const yearStem = pillars.year?.charStem;
   (TIANYI_NOBLE[dayStem] || []).forEach((branch) => push('tianyi', branch, 'dayStem'));
+  if (yearStem && yearStem !== dayStem) {
+    (TIANYI_NOBLE[yearStem] || []).forEach((branch) => push('tianyi', branch, 'yearStem'));
+  }
   push('wenchang', WENCHANG_NOBLE[dayStem], 'dayStem');
   push('lushen', LUSHEN[dayStem], 'dayStem');
   push('yangren', YANGREN[dayStem], 'dayStem');

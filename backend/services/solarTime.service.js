@@ -381,6 +381,49 @@ const LOCATION_TABLE = [
 ];
 
 /**
+ * 国际城市（表中「国际城市」段）。其余表内城市按中国处理。
+ * 本引擎时间体系以中国为主：中国地点缺时区时默认 Asia/Shanghai（北京时间）。
+ */
+const INTERNATIONAL_CITY_NAMES = new Set([
+  'Tokyo',
+  'Osaka',
+  'Seoul',
+  'Singapore',
+  'Kuala Lumpur',
+  'Bangkok',
+  'Jakarta',
+  'Manila',
+  'London',
+  'Paris',
+  'Berlin',
+  'Rome',
+  'Madrid',
+  'Moscow',
+  'New York',
+  'Los Angeles',
+  'San Francisco',
+  'Chicago',
+  'Seattle',
+  'Boston',
+  'Houston',
+  'Toronto',
+  'Vancouver',
+  'Sydney',
+  'Melbourne',
+  'Auckland',
+  'Sao Paulo',
+  'Mexico City',
+  'Cape Town',
+  'Nairobi',
+  'Lagos',
+  'Cairo',
+  'Mumbai',
+  'Delhi',
+  'Bangalore',
+  'Dubai',
+]);
+
+/**
  * 查找表：每个城市的英文名、中文名、别名都登记成键，指向同一条记录。
  *
  * 从 `LOCATION_TABLE` 生成而不是手写 —— 手写过一次，代价是 New York 的三个写法各占一行，
@@ -393,12 +436,49 @@ for (const entry of LOCATION_TABLE) {
     cn: entry.cn,
     latitude: entry.latitude,
     longitude: entry.longitude,
+    /** `cn` = 中国（含港澳台）；`intl` = 海外 */
+    region: INTERNATIONAL_CITY_NAMES.has(entry.name) ? 'intl' : 'cn',
   };
   for (const key of [entry.name, entry.cn, ...(entry.aliases || [])]) {
     const normalized = normalizeLocationKey(key);
     if (normalized) KNOWN_LOCATIONS.set(normalized, record);
   }
 }
+
+/**
+ * 坐标是否落在中国用时范围（大陆+海南+台港澳的粗略包围盒）。
+ * 朝鲜/日韩经度偏东已排除；印度等需靠城市表 region，裸坐标无法 100% 区分。
+ */
+const isChinaCoordinates = (latitude, longitude) => {
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+  // 台湾
+  if (lon >= 119 && lon <= 122.5 && lat >= 21.5 && lat <= 25.5) return true;
+  // 港澳
+  if (lon >= 113.5 && lon <= 114.6 && lat >= 22.0 && lat <= 22.7) return true;
+  // 大陆（东至约 123°，避开首尔 126°+）
+  if (lon >= 73 && lon <= 123 && lat >= 18 && lat <= 54) return true;
+  return false;
+};
+
+/**
+ * 是否按中国时区体系处理该出生地。
+ * 中国地点缺 timezone 时可默认 Asia/Shanghai；海外必须显式传时区。
+ */
+const isChinaLocation = (location) => {
+  if (!location) return false;
+  if (location.region === 'cn') return true;
+  if (location.region === 'intl') return false;
+  // 坐标串路径无 region
+  if (location.source === 'coordinates') {
+    return isChinaCoordinates(location.latitude, location.longitude);
+  }
+  return false;
+};
+
+/** 中国默认民用时区：全国钟表统一按北京时间记，真太阳时再用经度回拨。 */
+const DEFAULT_CHINA_TIMEZONE = 'Asia/Shanghai';
 
 /**
  * 参与子串兜底的键。**不是所有键都够格**。
@@ -482,7 +562,8 @@ const STATUS_HINT = {
     '改用 GET /api/locations 里列出的名称，或直接传 "纬度,经度"（如 "39.9042,116.4074"）。',
   'no-timezone':
     '出生地认出来了，但没有时区偏移，标准经线无从算起，真太阳时校正未生效，' +
-    '本次按钟表时间排盘。补 timezone（如 "Asia/Shanghai"）或 timezoneOffsetMinutes 即可。',
+    '本次按钟表时间排盘。中国地点可省略时区（默认 Asia/Shanghai）；' +
+    '海外地点必须传 timezone（如 "America/New_York"）或 timezoneOffsetMinutes。',
 };
 
 /**
@@ -583,4 +664,7 @@ export {
   describeLocationResolution,
   computeTrueSolarTime,
   listKnownLocations,
+  isChinaLocation,
+  isChinaCoordinates,
+  DEFAULT_CHINA_TIMEZONE,
 };

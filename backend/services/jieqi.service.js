@@ -57,7 +57,11 @@ export const MID_QI_NAMES = new Set([
   '大寒',
 ]);
 
-/** 把年月日时分压成可比较的整数。纯墙钟，不涉时区。 */
+/**
+ * 把年月日时分压成可比较的整数。纯墙钟，不涉时区。
+ * 粒度到**分**（与项目「交节精确到分」口径一致）：交节秒数忽略，
+ * 时刻落在交节那一分钟即算已交节。
+ */
 const wallClock = (year, month, day, hour = 0, minute = 0) =>
   Number(year) * 100000000 +
   Number(month) * 1000000 +
