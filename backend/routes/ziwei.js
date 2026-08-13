@@ -2,6 +2,7 @@ import { logger } from '../config/logger.js';
 import express from 'express';
 
 import { buildBirthTimeMeta } from '../utils/timezone.js';
+import { normalizeGender } from '../utils/validation.js';
 import { calculateZiweiChart } from '../services/ziwei.service.js';
 
 const router = express.Router();
@@ -16,6 +17,7 @@ const parseZiweiPayload = (body) => {
   const month = Number(birthMonth);
   const day = Number(birthDay);
   const hour = Number(birthHour);
+  const normalizedGender = normalizeGender(gender);
 
   if (
     !Number.isInteger(year) ||
@@ -29,9 +31,13 @@ const parseZiweiPayload = (body) => {
     day > 31 ||
     !Number.isInteger(hour) ||
     hour < 0 ||
-    hour > 23
+    hour > 23 ||
+    !normalizedGender
   ) {
-    return { ok: false, error: 'Missing required fields' };
+    return {
+      ok: false,
+      error: !normalizedGender ? 'gender must be male or female' : 'Missing required fields',
+    };
   }
 
   return {
@@ -42,7 +48,7 @@ const parseZiweiPayload = (body) => {
       birthMonth: month,
       birthDay: day,
       birthHour: hour,
-      gender: String(gender),
+      gender: normalizedGender,
     },
   };
 };

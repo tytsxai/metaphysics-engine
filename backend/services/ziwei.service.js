@@ -2,6 +2,7 @@ import { Solar } from 'lunar-javascript';
 
 import { BRANCHES_MAP } from '../constants/stems.js';
 import { STEMS } from '../constants/ganzhi.js';
+import { normalizeGender } from '../utils/validation.js';
 import { getFiveElementBureau } from './ganzhi.service.js';
 import {
   ZIWEI_BRANCH_ORDER,
@@ -103,7 +104,7 @@ const buildPalaces = (mingIndex, palaceStems) => {
 
 const STAR_REGISTRY = { ...ZIWEI_MAJOR_STARS, ...ZIWEI_MINOR_STARS, ...ZIWEI_MALEFIC_STARS };
 
-const isMale = (gender) => String(gender || '').toLowerCase() === 'male';
+const isMale = (gender) => normalizeGender(gender) === 'male';
 
 /**
  * 大限顺逆：阳男阴女顺行，阴男阳女逆行。阴阳看**年干**。
@@ -145,7 +146,12 @@ export const calculateMinorPeriodIndex = (yearBranch, gender, age) => {
 };
 
 export const calculateZiweiChart = (data) => {
-  const { birthYear, birthMonth, birthDay, birthHour, gender } = data;
+  const { birthYear, birthMonth, birthDay, birthHour } = data;
+  // 未传性别时仍可排出星盘结构（大限/小限按女命顺逆占位，调用方应显式传 gender）；
+  // 传了但非法则拒绝，避免「男」被静默当女。
+  const hasGenderInput = data.gender !== undefined && data.gender !== null && data.gender !== '';
+  const gender = hasGenderInput ? normalizeGender(data.gender) : null;
+  if (hasGenderInput && !gender) return null;
   const solar = Solar.fromYmdHms(birthYear, birthMonth, birthDay, birthHour || 0, 0, 0);
   const lunar = solar.getLunar();
   const eightChar = lunar.getEightChar();
@@ -165,8 +171,12 @@ export const calculateZiweiChart = (data) => {
   const lunarMonth = Math.abs(rawLunarMonth);
   const lunarDay = lunar.getDay();
   const lunarYear = lunar.getYear();
-  const yearStem = eightChar.getYearGan();
-  const yearBranch = eightChar.getYearZhi();
+  // 紫微年干支取**农历年**（正月初一换年），不是立春。
+  // 五虎遁、四化、禄存羊陀、魁钺、天马、火铃、大限顺逆皆系于此。
+  // 立春后～春节前若用 eightChar.getYearGan()（立春派）会与农历月日整盘不一致。
+  const lunarYearGanzhi = lunar.getYearInGanZhi();
+  const yearStem = lunarYearGanzhi[0];
+  const yearBranch = lunarYearGanzhi[1];
 
   const monthBranch = ZIWEI_MONTH_BRANCH_ORDER[normalizeIndex(lunarMonth - 1)];
   const monthBranchIndex = branchIndexOf(monthBranch);
