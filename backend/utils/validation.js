@@ -49,13 +49,24 @@ export const isValidCalendarDate = (year, month, day) => {
   );
 };
 
+/**
+ * 性别规范化。只接受 male/female（及中文 男/女、单字母 m/f），大小写不敏感。
+ * 非法值返回 null —— 调用方必须 400，禁止静默当女命（会反转大运/命卦/大限）。
+ */
+export const normalizeGender = (value) => {
+  if (typeof value !== 'string') return null;
+  const g = value.trim().toLowerCase();
+  if (g === 'male' || g === 'm' || g === '男') return 'male';
+  if (g === 'female' || g === 'f' || g === '女') return 'female';
+  return null;
+};
+
 export const validateBaziInput = (raw) => {
   const birthYear = Number(raw?.birthYear);
   const birthMonth = Number(raw?.birthMonth);
   const birthDay = Number(raw?.birthDay);
   const birthHour = Number(raw?.birthHour);
   const genderRaw = raw?.gender;
-  const gender = typeof genderRaw === 'string' ? genderRaw.trim() : '';
   if (
     isWhitespaceOnly(genderRaw) ||
     isWhitespaceOnly(raw?.birthLocation) ||
@@ -63,6 +74,7 @@ export const validateBaziInput = (raw) => {
   ) {
     return { ok: false, payload: null, reason: 'whitespace' };
   }
+  const gender = normalizeGender(genderRaw);
   const birthLocation =
     typeof raw?.birthLocation === 'string' ? raw.birthLocation.trim() : raw?.birthLocation;
   const timezone = typeof raw?.timezone === 'string' ? raw.timezone.trim() : raw?.timezone;

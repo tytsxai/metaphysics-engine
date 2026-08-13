@@ -67,7 +67,7 @@ test('buildBaziCacheKey normalizes inputs', () => {
     birthMonth: 12,
     birthDay: 15,
     birthHour: 10,
-    gender: ' Male ',
+    gender: ' male ',
   });
   assert.equal(key, '1990-12-15-10-male');
 

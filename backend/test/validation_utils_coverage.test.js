@@ -106,7 +106,7 @@ describe('validation utils coverage', () => {
       timezone: '  Asia/Shanghai  ',
     });
     assert.equal(ok.ok, true);
-    assert.equal(ok.payload.gender, 'm');
+    assert.equal(ok.payload.gender, 'male');
     assert.equal(ok.payload.birthLocation, 'shanghai');
     assert.equal(ok.payload.timezone, 'Asia/Shanghai');
     assert.equal(ok.payload.birthYear, 2024);

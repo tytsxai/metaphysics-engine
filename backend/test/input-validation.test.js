@@ -22,7 +22,7 @@ test('validateBaziInput accepts valid payload and trims fields', () => {
   assert.equal(result.payload.birthMonth, 5);
   assert.equal(result.payload.birthDay, 10);
   assert.equal(result.payload.birthHour, 13);
-  assert.equal(result.payload.gender, 'Female');
+  assert.equal(result.payload.gender, 'female');
   assert.equal(result.payload.birthLocation, 'NYC');
   assert.equal(result.payload.timezone, 'America/New_York');
   assert.equal(result.payload.extra, 'keep-me');
