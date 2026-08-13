@@ -25,6 +25,7 @@ import {
   BRANCH_TRIPLE_COMBINATIONS,
 } from '../constants/ganzhi.js';
 import { BRANCHES_MAP, STEMS_MAP } from '../constants/stems.js';
+import { resolveDayForHour } from '../utils/civilDate.js';
 import { getElementRelation } from './bazi.service.js';
 import { getXunkong } from './ganzhi.service.js';
 import { resolveSolarTerm } from './jieqi.service.js';
@@ -36,7 +37,6 @@ import {
   NOBLE_BY_DAY_STEM,
   DAY_TIME_BRANCHES,
   COURSE_TYPES,
-  BAZHUAN_DAYS,
 } from '../constants/liuren.js';
 
 const normalize12 = (value) => ((value % 12) + 12) % 12;
@@ -211,10 +211,33 @@ const buildExplicit = (initial, middle, last, courseType, extra = {}) => ({
 });
 
 /**
- * 伏吟：天地盘重合。有克依贼克法定初传，无克则阳日取干上神（自任）、阴日取支上神（自信）。
- * 中末传递取其刑；遇自刑之支则改取支上神（阳日）或干上神（阴日）。
+ * 从贼克/遥克候选里定初传：独一直接取；多课先比用；俱比/俱不比再涉害。
+ * 候选上神去重，避免同一上神出现两课时被误推进见机/察微。
  */
-const resolveFuyin = (courses, dayStem) => {
+const pickInitialFromCandidates = (candidates, heavenPlate, dayStem, courses, shehaiMode) => {
+  if (!candidates.length) return null;
+  if (candidates.length === 1) {
+    return { initial: candidates[0].upper, courseType: null, shehaiDepths: null };
+  }
+  const matched = candidates.filter((c) => isSamePolarity(c.upper, dayStem));
+  if (matched.length === 1) {
+    return { initial: matched[0].upper, courseType: COURSE_TYPES.zhiyi, shehaiDepths: null };
+  }
+  // 俱比只在比用命中的集合上涉害；俱不比才回退到全体候选
+  const pool = [...new Set((matched.length ? matched : candidates).map((c) => c.upper))];
+  const resolved = resolveShehai(pool, heavenPlate, dayStem, courses, shehaiMode);
+  return {
+    initial: resolved.initial,
+    courseType: resolved.courseType,
+    shehaiDepths: resolved.depths,
+  };
+};
+
+/**
+ * 伏吟：天地盘重合。有克依贼克（含比用/涉害）定初传，无克则阳日取干上神（自任）、
+ * 阴日取支上神（自信）。中末传递取其刑；遇自刑之支则改取支上神（阳日）或干上神（阴日）。
+ */
+const resolveFuyin = (courses, heavenPlate, dayStem) => {
   const zei = courses.filter((c) => classifyCourse(c) === 'zei');
   const ke = courses.filter((c) => classifyCourse(c) === 'ke');
   const primary = zei.length ? zei : ke;
@@ -223,7 +246,14 @@ const resolveFuyin = (courses, dayStem) => {
   let initial;
   let courseType;
   if (primary.length) {
-    initial = primary[0].upper;
+    const picked = pickInitialFromCandidates(
+      primary,
+      heavenPlate,
+      dayStem,
+      courses,
+      zei.length ? 'received' : 'inflicted'
+    );
+    initial = picked.initial;
     courseType = COURSE_TYPES.fuyinKe;
   } else {
     initial = yang ? stemUpper(courses) : branchUpper(courses);
@@ -245,7 +275,8 @@ const resolveFuyin = (courses, dayStem) => {
 };
 
 /**
- * 返吟：天地盘全冲。有克依贼克法；无克为无亲课，取驿马为初传、支上神为中传、干上神为末传。
+ * 返吟：天地盘全冲。有克依贼克（含比用/涉害）；无克为无亲课，取驿马为初传、
+ * 支上神为中传、干上神为末传。
  */
 const resolveFanyin = (courses, heavenPlate, dayStem, dayBranch) => {
   const zei = courses.filter((c) => classifyCourse(c) === 'zei');
@@ -253,17 +284,16 @@ const resolveFanyin = (courses, heavenPlate, dayStem, dayBranch) => {
   const primary = zei.length ? zei : ke;
 
   if (primary.length) {
-    const chosen =
-      primary.length === 1
-        ? primary[0].upper
-        : resolveShehai(
-            primary.map((c) => c.upper),
-            heavenPlate,
-            dayStem,
-            courses,
-            zei.length ? 'received' : 'inflicted'
-          ).initial;
-    return buildByUpper(chosen, heavenPlate, COURSE_TYPES.fanyinKe);
+    const picked = pickInitialFromCandidates(
+      primary,
+      heavenPlate,
+      dayStem,
+      courses,
+      zei.length ? 'received' : 'inflicted'
+    );
+    return buildByUpper(picked.initial, heavenPlate, COURSE_TYPES.fanyinKe, {
+      shehaiDepths: picked.shehaiDepths || undefined,
+    });
   }
 
   const yimaEntry = YIMA_BY_GROUP.find((g) => g.branches.includes(dayBranch));
@@ -277,12 +307,13 @@ const resolveFanyin = (courses, heavenPlate, dayStem, dayBranch) => {
  * 取三传，依九宗门次第。
  *
  * 伏吟返吟因天地盘特殊，先行判定；其余按
- * 贼克 → 比用 → 涉害 → 遥克 → 昴星 → 别责 → 八专 逐层排除。
+ * 贼克 → 比用 → 涉害 → 八专 → 遥克 → 别责 / 昴星 逐层排除。
+ * （八专「不取遥克」，故必须排在遥克之前。）
  */
 export const deriveThreeTransmissions = (courses, heavenPlate, dayStem, options = {}) => {
   const { isFuyin = false, isFanyin = false, dayBranch = null } = options;
 
-  if (isFuyin) return resolveFuyin(courses, dayStem);
+  if (isFuyin) return resolveFuyin(courses, heavenPlate, dayStem);
   if (isFanyin) return resolveFanyin(courses, heavenPlate, dayStem, dayBranch);
 
   const zei = courses.filter((c) => classifyCourse(c) === 'zei');
@@ -297,17 +328,17 @@ export const deriveThreeTransmissions = (courses, heavenPlate, dayStem, options 
   }
 
   if (primary.length > 1) {
-    // 比用法：取与日干同阴阳者；独一者用之
-    const matched = primary.filter((c) => isSamePolarity(c.upper, dayStem));
-    if (matched.length === 1) {
-      return buildByUpper(matched[0].upper, heavenPlate, COURSE_TYPES.zhiyi);
-    }
-    // 俱比或俱不比，用涉害法。计数方式随课体而变：下贼上数受克、上克下数所克。
-    const pool = (matched.length ? matched : primary).map((c) => c.upper);
-    const shehaiMode = zei.length ? 'received' : 'inflicted';
-    const resolved = resolveShehai(pool, heavenPlate, dayStem, courses, shehaiMode);
-    return buildByUpper(resolved.initial, heavenPlate, resolved.courseType, {
-      shehaiDepths: resolved.depths,
+    const picked = pickInitialFromCandidates(
+      primary,
+      heavenPlate,
+      dayStem,
+      courses,
+      zei.length ? 'received' : 'inflicted'
+    );
+    // 比用独一时 courseType 为 zhiyi；涉害时用涉害系课体
+    const courseType = picked.courseType || COURSE_TYPES.zhiyi;
+    return buildByUpper(picked.initial, heavenPlate, courseType, {
+      shehaiDepths: picked.shehaiDepths || undefined,
     });
   }
 
@@ -317,8 +348,10 @@ export const deriveThreeTransmissions = (courses, heavenPlate, dayStem, options 
   const yang = isYangDay(dayStem);
   const dayGanzhi = `${dayStem}${options.dayBranch || ''}`;
 
-  // 八专：日干支同位，四课备二。此门**不取遥克**，故必须排在遥克之前判定。
-  if (BAZHUAN_DAYS.includes(dayGanzhi) || distinctCourses.size === 2) {
+  // 八专：日干寄宫与日支同位（或四课备二）。此门**不取遥克**，故必须排在遥克之前判定。
+  // 判定用 STEM_LODGING，不用手写日表（旧表乙卯/戊戌/辛酉是错的）。
+  const isBazhuanDay = STEM_LODGING[dayStem] === dayBranch;
+  if (isBazhuanDay || distinctCourses.size === 2) {
     // 阳日自干上神顺数三位，阴日自第四课上神逆数三位（含本位计一，故步长为 2）
     const base = yang ? stemUpper(courses) : courses[3].upper;
     const step = yang ? 2 : -2;
@@ -343,18 +376,16 @@ export const deriveThreeTransmissions = (courses, heavenPlate, dayStem, options 
     return buildByUpper(remote[0].upper, heavenPlate, remoteType);
   }
   if (remote.length > 1) {
-    const matched = remote.filter((c) => isSamePolarity(c.upper, dayStem));
-    const chosen =
-      matched.length === 1
-        ? matched[0].upper
-        : resolveShehai(
-            remote.map((c) => c.upper),
-            heavenPlate,
-            dayStem,
-            courses,
-            shooters.length ? 'received' : 'inflicted'
-          ).initial;
-    return buildByUpper(chosen, heavenPlate, remoteType);
+    const picked = pickInitialFromCandidates(
+      remote,
+      heavenPlate,
+      dayStem,
+      courses,
+      shooters.length ? 'received' : 'inflicted'
+    );
+    return buildByUpper(picked.initial, heavenPlate, remoteType, {
+      shehaiDepths: picked.shehaiDepths || undefined,
+    });
   }
 
   // 无克亦无遥克：四课缺一（只三课）用别责，四课俱全用昴星。
@@ -435,22 +466,21 @@ export const buildTwelveGenerals = (dayStem, hourBranch, heavenPlate) => {
  * @param {number} input.day 占日公历日
  * @param {number} input.hour 占时（0-23）
  */
-export const castLiurenChart = ({ year, month, day, hour }) => {
+export const castLiurenChart = ({ year, month, day, hour, minute = 0 }) => {
   if (![year, month, day].every((v) => Number.isInteger(Number(v)))) return null;
 
-  const solar = Solar.fromYmd(Number(year), Number(month), Number(day));
+  const h = Number(hour) || 0;
+  const mi = Number(minute) || 0;
+  // 23 点入次日子时：日干支按次日，与时支同属一个子时；月将仍按实际占时中气。
+  const dayCivil = resolveDayForHour(Number(year), Number(month), Number(day), h);
+  const solar = Solar.fromYmd(dayCivil.year, dayCivil.month, dayCivil.day);
   const lunar = solar.getLunar();
   const dayGanzhi = lunar.getDayInGanZhi();
   const dayStem = dayGanzhi[0];
   const dayBranch = dayGanzhi[1];
 
-  const hourBranch = getHourBranch(hour);
-  const monthGeneral = resolveMonthGeneral(
-    Number(year),
-    Number(month),
-    Number(day),
-    Number(hour) || 0
-  );
+  const hourBranch = getHourBranch(h);
+  const monthGeneral = resolveMonthGeneral(Number(year), Number(month), Number(day), h, mi);
   const heavenPlate = buildHeavenPlate(monthGeneral.branch, hourBranch);
   if (!heavenPlate) return null;
 
@@ -469,7 +499,13 @@ export const castLiurenChart = ({ year, month, day, hour }) => {
   const generals = buildTwelveGenerals(dayStem, hourBranch, heavenPlate);
 
   return {
-    date: { year: Number(year), month: Number(month), day: Number(day), hour: Number(hour) },
+    date: {
+      year: Number(year),
+      month: Number(month),
+      day: Number(day),
+      hour: Number(hour),
+      minute: mi,
+    },
     dayGanzhi,
     dayStem,
     dayBranch,

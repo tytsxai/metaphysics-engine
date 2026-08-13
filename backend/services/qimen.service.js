@@ -23,6 +23,7 @@ import {
   YUAN_BY_FUTOU_BRANCH,
   YUAN_NAMES,
 } from '../constants/qimen.js';
+import { resolveDayForHour } from '../utils/civilDate.js';
 import { resolveSolarTerm } from './jieqi.service.js';
 
 /**
@@ -93,10 +94,15 @@ export const resolveYuan = (year, month, day) => {
   return null;
 };
 
-/** 定阴阳遁与局数。 */
-export const resolveJu = (year, month, day, hour = 0, minute = 0) => {
+/**
+ * 定阴阳遁与局数。
+ * @param {number} [dayForYuan] 可选：符头按此公历日取（子初换日后的日）。
+ *   缺省与 year/month/day 相同。
+ */
+export const resolveJu = (year, month, day, hour = 0, minute = 0, dayForYuan = null) => {
   const jieqi = resolveJieQi(year, month, day, hour, minute);
-  const yuanInfo = resolveYuan(year, month, day);
+  const yuanDay = dayForYuan || { year, month, day };
+  const yuanInfo = resolveYuan(yuanDay.year, yuanDay.month, yuanDay.day);
   if (!jieqi) return null;
   const entry = JIEQI_JU[jieqi.name];
   if (!entry || !yuanInfo) return null;
@@ -152,17 +158,20 @@ export const getHourGanzhi = (dayStem, hour) => {
  *
  * @param {object} input 公历年月日与时辰
  */
-export const castQimenChart = ({ year, month, day, hour }) => {
+export const castQimenChart = ({ year, month, day, hour, minute = 0 }) => {
   const y = Number(year);
   const m = Number(month);
   const d = Number(day);
   const h = Number(hour);
+  const mi = Number(minute) || 0;
   if (![y, m, d, h].every(Number.isFinite)) return null;
 
-  const juInfo = resolveJu(y, m, d, h);
+  // 节气用实际占时（到分）；日干支与拆补符头按子初换日（23 点起入次日，与 0 点同盘）
+  const dayCivil = resolveDayForHour(y, m, d, h);
+  const juInfo = resolveJu(y, m, d, h, mi, dayCivil);
   if (!juInfo) return null;
 
-  const lunar = Solar.fromYmd(y, m, d).getLunar();
+  const lunar = Solar.fromYmd(dayCivil.year, dayCivil.month, dayCivil.day).getLunar();
   const dayGanzhi = lunar.getDayInGanZhi();
   const hourGanzhi = getHourGanzhi(dayGanzhi[0], h);
   if (!hourGanzhi) return null;
@@ -228,7 +237,8 @@ export const castQimenChart = ({ year, month, day, hour }) => {
   });
 
   return {
-    date: { year: y, month: m, day: d, hour: h },
+    // 回显所用输入：minute 参与节气定局，不回显调用方无从核对
+    date: { year: y, month: m, day: d, hour: h, minute: mi },
     dayGanzhi,
     hourGanzhi,
     xunshou,
