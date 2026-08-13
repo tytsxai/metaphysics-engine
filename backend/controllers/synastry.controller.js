@@ -1,5 +1,6 @@
 import { getBaziCalculation } from '../services/calculations.service.js';
 import { calculateCompatibility } from '../services/synastry.service.js';
+import { normalizeGender } from '../utils/validation.js';
 import { logger } from '../config/logger.js';
 
 export const analyzeSynastry = async (req, res, next) => {
@@ -10,13 +11,20 @@ export const analyzeSynastry = async (req, res, next) => {
       return res.status(400).json({ error: 'Data for both persons is required' });
     }
 
+    // 性别在这里就规范化：performCalculation 对非法性别是 throw，不拦住会变成 500。
+    const genderA = normalizeGender(personA.gender);
+    const genderB = normalizeGender(personB.gender);
+    if (!genderA || !genderB) {
+      return res.status(400).json({ error: 'gender must be male or female for both persons.' });
+    }
+
     // Calculate charts for both
     // Assuming personA/B object structure matches what getBaziCalculation expects
     // { birthYear, birthMonth, birthDay, birthHour, gender }
 
     const [chartA, chartB] = await Promise.all([
-      getBaziCalculation(personA),
-      getBaziCalculation(personB),
+      getBaziCalculation({ ...personA, gender: genderA }),
+      getBaziCalculation({ ...personB, gender: genderB }),
     ]);
 
     const compatibility = calculateCompatibility(chartA, chartB);
