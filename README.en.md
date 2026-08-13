@@ -41,7 +41,7 @@ client you build, or wire it into an AI agent as a tool.
 | Dev entry point     | `./bazi`, a programmatic CLI for capability calls and repo operations — every command supports `--json`                       |
 | Main entry points   | API routes in `backend/routes`, algorithms in `backend/services`                                                              |
 | API contract        | OpenAPI in [docs/openapi.json](docs/openapi.json), served at `/api-docs`, snapshot guarded in CI                              |
-| License             | MIT. See [LICENSE](LICENSE) |
+| License             | MIT. See [LICENSE](LICENSE)                                                                                                   |
 | Key limitation      | Output is for entertainment, cultural research, or product prototyping only — never medical, legal, financial, or life advice |
 
 ### What it is not

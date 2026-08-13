@@ -21,7 +21,7 @@ English summary: **Metaphysics Engine is an open-source divination calculation e
 
 | 维度         | 说明                                                                                     |
 | ------------ | ---------------------------------------------------------------------------------------- |
-| 项目类型     | 玄学 / 占星 / 命理**算法能力层**（开源 MIT），以自部署 HTTP API + 程序化 CLI 交付            |
+| 项目类型     | 玄学 / 占星 / 命理**算法能力层**（开源 MIT），以自部署 HTTP API + 程序化 CLI 交付        |
 | 解决问题     | 把命理算法里那些「写错也不会报错」的语义边界做成可测试、有契约、可被程序调用的能力       |
 | 适合谁       | 要给产品接命理计算的后端开发者，以及要给 AI Agent 接一个真实排盘工具的团队               |
 | 消费方式     | 直接调 HTTP API；用 `./bazi calc` / `./bazi cast`；或作为 agent tool 接入                |
@@ -33,7 +33,7 @@ English summary: **Metaphysics Engine is an open-source divination calculation e
 | 开发入口     | 仓库根 `./bazi` 程序化 CLI：算法调用、环境准备、起停引擎、测试，全部支持 `--json`        |
 | 主要入口     | API 路由在 `backend/routes`；算法逻辑在 `backend/services`                               |
 | 接口契约     | OpenAPI 描述在 [docs/openapi.json](docs/openapi.json)，运行时挂在 `/api-docs`，CI 守快照 |
-| 许可证       | MIT。见 [LICENSE](LICENSE)                                                                |
+| 许可证       | MIT。见 [LICENSE](LICENSE)                                                               |
 | 重要限制     | 输出仅适合娱乐、文化研究或产品原型验证；不要当作医疗、法律、投资、人生决策建议           |
 
 ### 这不是什么 / What it is not
