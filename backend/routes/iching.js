@@ -26,13 +26,39 @@ router.post('/divine', (req, res) => {
   let timeContext = null;
 
   if (method === 'time') {
+    const body = req.body || {};
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const day = now.getDate();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
-    timeContext = { year, month, day, hour, minute, iso: now.toISOString() };
+    // 可指定 year/month/day/hour 以复现；缺省才取服务器此刻
+    const hasExplicit =
+      body.year !== undefined ||
+      body.month !== undefined ||
+      body.day !== undefined ||
+      body.hour !== undefined;
+    const year = Number.isInteger(Number(body.year)) ? Number(body.year) : now.getFullYear();
+    const month = Number.isInteger(Number(body.month)) ? Number(body.month) : now.getMonth() + 1;
+    const day = Number.isInteger(Number(body.day)) ? Number(body.day) : now.getDate();
+    const hour = Number.isInteger(Number(body.hour)) ? Number(body.hour) : now.getHours();
+    if (
+      year < 1 ||
+      year > 9999 ||
+      month < 1 ||
+      month > 12 ||
+      day < 1 ||
+      day > 31 ||
+      hour < 0 ||
+      hour > 23
+    ) {
+      return res.status(400).json({ error: 'Invalid year/month/day/hour for time divination.' });
+    }
+    timeContext = {
+      year,
+      month,
+      day,
+      hour,
+      minute: 0,
+      provided: hasExplicit,
+      iso: hasExplicit ? null : now.toISOString(),
+    };
 
     // 梅花易数年月日时起例：年支数 + 农历月 + 农历日 定上卦，再加时支数定下卦。
     // 公历年份整数与分钟都不入卦 —— 那不是这个起法的输入。

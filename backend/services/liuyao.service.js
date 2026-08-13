@@ -154,11 +154,14 @@ export const findHiddenSpirits = (lines, palaceInfo) => {
       .map((relative) => relative.key)
   );
 
+  // 一亲一伏：缺哪一类六亲只取一条，不把本宫纯卦里同亲的多爻全挂上。
   const hidden = [];
+  const hiddenKeys = new Set();
   pureNajia.forEach((yao, index) => {
     const element = BRANCHES_MAP[yao.branch]?.element;
     const relative = getSixRelative(palaceInfo.palaceElement, element);
-    if (!relative || presentRelatives.has(relative.key)) return;
+    if (!relative || presentRelatives.has(relative.key) || hiddenKeys.has(relative.key)) return;
+    hiddenKeys.add(relative.key);
     hidden.push({
       position: index + 1,
       stem: yao.stem,
