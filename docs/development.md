@@ -1,6 +1,6 @@
-# Metaphysics Engine - 开发指南
+# 本地开发
 
-> 版本: v0.3.0 | 更新: 2026-07-29
+> 与代码同步。部署总览见 [deployment.md](deployment.md)，模块见 [modules.md](modules.md)。
 
 Metaphysics Engine 是一个无状态的算法能力层：Express 提供 HTTP 接口，算法逻辑全在
 `backend/services/`，没有数据库，没有前端。本文面向本地开发、二次开发和自部署前的验证。
@@ -94,10 +94,10 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 
 ## 代码结构提示
 
-- 算法与业务逻辑集中在 `backend/services/*.service.js`
+- 算法与业务逻辑集中在 `backend/services/*.service.js`，分工见 [modules.md](modules.md)
 - HTTP 入口在 `backend/routes/*`，只做参数编解码
 - 对外接口契约在 `docs/openapi.json`，由 `apiSchema.service.js` 生成，运行时挂在 `/api-docs`
-- 架构与模块分工见 [architecture.md](architecture.md)
+- 架构见 [architecture.md](architecture.md)；配置见 [configuration.md](configuration.md)
 - **算法语义边界**（真太阳时、晚子时、闰月、节气交接）见
   [.claude/skills/bazi-cli/SKILL.md](../.claude/skills/bazi-cli/SKILL.md) ——
   那里每一条都是「错了不会报错」的坑，改算法之前先读
@@ -108,6 +108,7 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 - 服务端到服务端、Agent 调用不带 Origin 头，不受 CORS 影响
 - AI Provider 根据密钥自动选择；无密钥时为 `mock`
 - 修改/新增 API 时同步更新 `docs/api.md` 和 OpenAPI 快照
+- 改了行为、配置或部署方式时按 [README.md](README.md) 的同步表改对应文档，并跑 `./scripts/check-docs.sh`
 
 ## 调试
 
@@ -146,8 +147,8 @@ CLI 刻意拒绝接管也拒绝 kill，因为按端口杀进程会误伤别的�
 ## 改动规范与质量门槛
 
 完整约定见 [CONTRIBUTING.md](../CONTRIBUTING.md)：项目边界、算法改动的判据、
-加一门新术数要动哪九处、本地质量门槛、提交规范、改动自查清单，
-以及哪些改动因为边界原因不做。
+加一门新术数要动哪几处、本地质量门槛、提交规范、改动自查清单，
+以及哪些改动因为边界原因不做。文档地图见 [README.md](README.md)。
 
 几条最容易踩的：
 

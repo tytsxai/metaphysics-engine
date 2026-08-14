@@ -430,7 +430,7 @@ stdio 传输，工具定义与 `bazi schema` 同源（共用 `core/toolSchema.mj
   而工具长期挂在 Agent 上时正是最需要它的时候。
 - **退出码翻译成 `isError`**，CLI 信封里的 `hint` / `next` / `exitMeaning` 原样交给模型。
 - **stdout 归协议独占**，日志走 stderr；这条命令没有 `--json` 可言（它没有结果信封）。
-- **引擎要先起着**，和其他能力命令一样：`./bazi stack up --only api`。
+- **引擎要先起着**，和其他能力命令一样：`./bazi stack up`。
 - SDK（`@modelcontextprotocol/sdk`）是动态加载的：没装只影响这一条命令，退 3 并提示
   `npm install`，`bazi doctor` 里也单列一项 `deps:mcp-sdk`。
 

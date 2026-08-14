@@ -5,14 +5,14 @@
   "type": "module",
   "description": "Stateless HTTP surface over the BaZi / Zi Wei Dou Shu / Tarot / I Ching / Zodiac / Synastry calculation engine, with OpenAPI, health checks and optional AI providers.",
   "license": "UNLICENSED",
-  "homepage": "https://github.com/tytsxai-stack/metaphysics-engine#readme",
+  "homepage": "https://github.com/tytsxai/metaphysics-engine#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tytsxai-stack/metaphysics-engine.git",
+    "url": "git+https://github.com/tytsxai/metaphysics-engine.git",
     "directory": "backend"
   },
   "bugs": {
-    "url": "https://github.com/tytsxai-stack/metaphysics-engine/issues"
+    "url": "https://github.com/tytsxai/metaphysics-engine/issues"
   },
   "engines": {
     "node": ">=20",

@@ -269,7 +269,7 @@ covered by a test; **a school difference** (leap-month handling, late-Zi day rol
 not — the chosen ruling is documented in place and may be exposed as a parameter, but the
 default is not silently changed.
 
-The nine places a new capability has to touch, the local quality gates, the commit convention
+Where a new capability has to land, the local quality gates, the commit convention
 and the changes that are out of bounds are all in [CONTRIBUTING.md](CONTRIBUTING.md). The
 rulings already chosen are listed one by one in
 [.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md) — read that before
@@ -297,14 +297,20 @@ AI index: [llms.txt](llms.txt).
 
 ## Documentation
 
-- [docs/api.md](docs/api.md) — HTTP API reference
-- [docs/architecture.md](docs/architecture.md) — architecture and module boundaries
+Index and sync rules: [docs/README.md](docs/README.md). The Chinese README is authoritative.
+
+- [docs/architecture.md](docs/architecture.md) — architecture
+- [docs/modules.md](docs/modules.md) — key modules and core logic
+- [docs/deployment.md](docs/deployment.md) — local, container, and server deploy
+- [docs/configuration.md](docs/configuration.md) — configuration
+- [docs/operations.md](docs/operations.md) — operations and troubleshooting
 - [docs/development.md](docs/development.md) — local development
+- [docs/api.md](docs/api.md) — HTTP API guide
 - [docs/faq.md](docs/faq.md) — FAQ
 - [llms.txt](llms.txt) — AI / answer-engine summary
 - [.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md) — algorithmic semantics and the CLI contract
 - [CONTRIBUTING.md](CONTRIBUTING.md) — development conventions, quality gates, algorithm-change criteria
-- [PRODUCTION.md](PRODUCTION.md) — production deployment and operations
+- [PRODUCTION.md](PRODUCTION.md) — production deployment details
 
 ## License
 

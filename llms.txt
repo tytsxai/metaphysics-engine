@@ -101,7 +101,9 @@ Manual path: `npm install && npm -C backend install && NODE_ENV=development npm 
 
 - README.md — Chinese authoritative overview
 - README.en.md — English summary
+- docs/README.md — documentation map and sync rules
+- docs/architecture.md, docs/modules.md, docs/configuration.md
+- docs/deployment.md, docs/operations.md, docs/development.md, docs/faq.md
 - docs/api.md, docs/openapi.json — HTTP contract
-- docs/architecture.md, docs/development.md, docs/faq.md
 - PRODUCTION.md, CONTRIBUTING.md, CHANGELOG.md
 - .claude/skills/bazi-cli/SKILL.md — algorithm school choices and CLI semantics

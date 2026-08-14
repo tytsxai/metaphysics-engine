@@ -1,6 +1,6 @@
 # Metaphysics Engine 任务清单
 
-> 更新: 2026-08-13
+> 更新: 2026-08-14。接手文档见 [docs/README.md](docs/README.md)。
 
 ## 当前状态
 

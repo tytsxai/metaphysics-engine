@@ -15,7 +15,7 @@ Metaphysics Engine 是一个开源的命理计算引擎，把中国传统术数�
 
 English summary: **Metaphysics Engine is an open-source divination calculation engine** covering the traditional Chinese canon — BaZi, Zi Wei Dou Shu, Liu Yao (King Fang stem-branch attachment), Da Liu Ren, Qi Men Dun Jia, Ba Zhai feng shui, almanac day-selection and name grids — plus Tarot, I Ching, Zodiac and Synastry. Exposed as a documented HTTP API and an agent-callable CLI. Stateless pure calculation — no database, no accounts, no UI. Node.js / Express, optional Redis cache, pluggable AI providers, OpenAPI contract.
 
-**目录**：[项目定位](#项目定位--project-snapshot) · [核心能力](#核心能力--core-capabilities) · [快速开始](#快速开始--quick-start) · [调用示例](#调用示例--usage-examples) · [接口速查](#接口速查--api-endpoints) · [适用场景](#适用场景--use-cases) · [技术栈](#技术栈--tech-stack) · [环境变量](#环境变量--configuration) · [FAQ](#faq--常见问题) · [项目结构](#项目结构--repository-structure) · [测试](#测试--testing) · [生产部署](#部署与生产注意事项--production-notes) · [开发约定](#开发约定--development) · [限制](#限制与免责声明--limitations)
+**目录**：[项目定位](#项目定位--project-snapshot) · [核心能力](#核心能力--core-capabilities) · [快速开始](#快速开始--quick-start) · [调用示例](#调用示例--usage-examples) · [接口速查](#接口速查--api-endpoints) · [适用场景](#适用场景--use-cases) · [技术栈](#技术栈--tech-stack) · [环境变量](#环境变量--configuration) · [FAQ](#faq--常见问题) · [项目结构](#项目结构--repository-structure) · [测试](#测试--testing) · [生产部署](#部署与生产注意事项--production-notes) · [开发约定](#开发约定--development) · [限制](#限制与免责声明--limitations) · [文档](#文档--documentation)
 
 ## 项目定位 / Project Snapshot
 
@@ -287,11 +287,10 @@ curl -X POST http://127.0.0.1:4000/api/tarot/draw \
 
 ### 许可证是什么？
 
-MIT License，见 [LICENSE](LICENSE)。历史边界：截至提交
-`9d9fe52` 的那一版曾以 MIT 发布在 [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master)，
-那份授权不可撤回；此后的开发——六爻纳甲、大六壬、奇门遁甲、八宅、择吉、姓名五格，紫微安星重写与
-八字旺衰、节气、真太阳时的修正，以及能力 CLI / tool schema / MCP server——从未以 MIT 发布过。
-LICENSE 里把这条线写明了。
+MIT License，见 [LICENSE](LICENSE)。
+
+本仓库与公开的 Web 全栈社区版 [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master)
+（冻结在 `v0.2.0`，提交 `9d9fe52`）是两条互不同步的代码库，不要把两边的改动搬来搬去。
 
 部署时命理/占星内容的合规声明、免责声明和平台审核责任仍由部署者自行承担，详见[限制与免责声明](#限制与免责声明--limitations)。
 
@@ -311,12 +310,12 @@ metaphysics-engine/
 │   ├── scripts/             # start.mjs（容器入口）、generate-openapi.js
 │   └── test/                # backend Node.js tests
 ├── tools/cli/               # ./bazi 程序化 CLI（calc/cast + setup/doctor/env/stack/test）
-├── docs/                    # API、架构、开发、FAQ、OpenAPI 快照
+├── docs/                    # 文档体系入口见 docs/README.md
 ├── scripts/                 # CI 守卫与部署验证脚本
 ├── bazi                     # CLI entry point
 ├── docker-compose.yml       # 本地可选 Redis（引擎本身不需要）
 ├── docker-compose.prod.yml  # 生产参考栈：引擎 + 可选 Redis + autoheal
-└── PRODUCTION.md            # 生产部署与运维
+└── PRODUCTION.md            # 生产部署细节（总览见 docs/deployment.md）
 ```
 
 ## 测试 / Testing
@@ -354,7 +353,7 @@ npm run test:engine      # 能力契约验证（要引擎在跑）
 **流派不同**（闰月归本月 vs 折半、晚子时换不换日）不是 bug，就地注明口径、必要时做成参数，
 但不改默认。
 
-加一个新能力要动哪九处、本地质量门槛、提交信息规范、以及哪些改动因为边界原因不做，
+加一个新能力要动哪几处、本地质量门槛、提交信息规范、以及哪些改动因为边界原因不做，
 全部写在 [CONTRIBUTING.md](CONTRIBUTING.md)。已选定的流派口径逐条写在
 [.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md)，改算法前先读那一份。
 
@@ -380,17 +379,22 @@ AI 检索摘要：[llms.txt](llms.txt)。
 
 ## 文档 / Documentation
 
-- [docs/api.md](docs/api.md): HTTP API 接口清单
-- [docs/architecture.md](docs/architecture.md): 架构与模块分工
-- [docs/development.md](docs/development.md): 本地开发指南
+地图与同步约定：[docs/README.md](docs/README.md)。
+
+- [docs/architecture.md](docs/architecture.md): 架构
+- [docs/modules.md](docs/modules.md): 关键模块与核心逻辑
+- [docs/deployment.md](docs/deployment.md): 本地 / 容器 / 服务器部署
+- [docs/configuration.md](docs/configuration.md): 配置
+- [docs/operations.md](docs/operations.md): 运维与排错
+- [docs/development.md](docs/development.md): 本地开发
+- [docs/api.md](docs/api.md): HTTP API 导览
 - [docs/faq.md](docs/faq.md): 常见问题
 - [llms.txt](llms.txt): AI / 答案引擎可读项目摘要
 - [.claude/skills/bazi-cli/SKILL.md](.claude/skills/bazi-cli/SKILL.md): 算法语义边界与 CLI 用法
 - [CONTRIBUTING.md](CONTRIBUTING.md): 开发约定、质量门槛与算法改动判据
-- [PRODUCTION.md](PRODUCTION.md): 生产部署与运维
+- [PRODUCTION.md](PRODUCTION.md): 生产部署细节
 - [CHANGELOG.md](CHANGELOG.md): 版本变更记录
 
 ## License
 
-MIT License。见 [LICENSE](LICENSE)——其中仍说明与 bazi-master 的历史边界：哪一部分代码曾单独以 MIT 发布、
-边界在哪个提交。
+MIT License。见 [LICENSE](LICENSE)。与 [tytsxai/bazi-master](https://github.com/tytsxai/bazi-master) 互不同步，不要搬代码。

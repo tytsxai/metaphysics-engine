@@ -7,7 +7,7 @@
 ## 30 秒把环境跑起来
 
 ```bash
-git clone https://github.com/tytsxai-stack/metaphysics-engine.git
+git clone https://github.com/tytsxai/metaphysics-engine.git
 cd metaphysics-engine
 ./bazi setup && ./bazi doctor && ./bazi stack up
 ./bazi test
@@ -46,19 +46,20 @@ cd metaphysics-engine
 
 ### 加一个新能力要动哪几处
 
-漏掉任何一处 CI 都会红，按顺序来：
+漏掉接口/测试/OpenAPI 任一步 CI 都会红。文档步靠 PR 清单和 `./scripts/check-docs.sh`。按顺序来：
 
-| 步骤 | 位置                                            | 说明                                           |
-| ---- | ----------------------------------------------- | ---------------------------------------------- |
-| 1    | `backend/services/<name>.service.js`            | 算法本体。纯函数，不碰 req/res                 |
-| 2    | `backend/routes/<name>.js`                      | HTTP 入口，只做参数编解码                      |
-| 3    | `backend/routes/api.js`                         | 挂载 router                                    |
-| 4    | `backend/services/apiSchema.service.js`         | 接口契约                                       |
-| 5    | `npm -C backend run generate:openapi`           | 重新生成 `docs/openapi.json`，**必须提交**     |
-| 6    | `backend/test/<name>.test.js`                   | 算法测试，用有典籍依据的样例                   |
-| 7    | `tools/cli/src/commands/calc.mjs` 或 `cast.mjs` | CLI 子命令，声明 `effect` 与 `reproducibility` |
-| 8    | `docs/api.md`                                   | 人读的接口文档                                 |
-| 9    | `.claude/skills/bazi-cli/SKILL.md`              | 这门术数的语义边界与选定口径                   |
+| 步骤 | 位置                                                                 | 说明                                           |
+| ---- | -------------------------------------------------------------------- | ---------------------------------------------- |
+| 1    | `backend/services/<name>.service.js`                                 | 算法本体。纯函数，不碰 req/res                 |
+| 2    | `backend/routes/<name>.js`                                           | HTTP 入口，只做参数编解码                      |
+| 3    | `backend/routes/api.js`                                              | 挂载 router                                    |
+| 4    | `backend/services/apiSchema.service.js`                              | 接口契约                                       |
+| 5    | `npm -C backend run generate:openapi`                                | 重新生成 `docs/openapi.json`，**必须提交**     |
+| 6    | `backend/test/<name>.test.js`                                        | 算法测试，用有典籍依据的样例                   |
+| 7    | `tools/cli/src/commands/calc.mjs` 或 `cast.mjs`                      | CLI 子命令，声明 `effect` 与 `reproducibility` |
+| 8    | `docs/api.md`                                                        | 人读的接口文档                                 |
+| 9    | `.claude/skills/bazi-cli/SKILL.md`                                   | 这门术数的语义边界与选定口径                   |
+| 10   | `docs/modules.md`（若动了分层或请求链，再加 `docs/architecture.md`） | 接手的人要能找到新模块                         |
 
 第 4、5 步是最容易漏的：`docs/openapi.json` 是接口消费者读的产物，
 CI 会重新生成再 `git diff --exit-code`，不一致就直接失败。
@@ -79,16 +80,17 @@ npm run format           # Prettier 会改文件，format:check 在 CI 里是硬
 CI（[.github/workflows/ci.yml](.github/workflows/ci.yml)，Node 20.x 与 22.x 双跑）依次卡：
 
 1. `./scripts/check-repo-artifacts.sh`——防止构建产物、截图、大文件被提交
-2. `npm run lint` + `npm run format:check`
-3. `./scripts/check-env-template.sh`——生产模板必须覆盖代码读取的每个环境变量
-4. OpenAPI 快照一致性
-5. `npm audit --omit=dev --audit-level=high`（只审运行时依赖）
-6. backend 测试 + CLI 契约测试（22.x 那条腿另跑覆盖率门槛）
-7. 拿真实引擎验证能力契约里声明的可复现性
-8. 构建生产镜像，并**以生产模式、且不配 Redis** 起容器做冒烟：探针、鉴权默认值、
+2. `./scripts/check-docs.sh`——拦截已删除的 CLI 写法和错误仓库地址
+3. `npm run lint` + `npm run format:check`
+4. `./scripts/check-env-template.sh`——生产模板必须覆盖代码读取的每个环境变量
+5. OpenAPI 快照一致性
+6. `npm audit --omit=dev --audit-level=high`（只审运行时依赖）
+7. backend 测试 + CLI 契约测试（22.x 那条腿另跑覆盖率门槛）
+8. 拿真实引擎验证能力契约里声明的可复现性
+9. 构建生产镜像，并**以生产模式、且不配 Redis** 起容器做冒烟：探针、鉴权默认值、
    一次真实排盘、SIGTERM 退 0
 
-第 8 条是独立的 `image` job，因为它守的是前七条都看不见的东西：上面全部跑在源码
+第 9 条是独立的 `image` job，因为它守的是前面都看不见的东西：上面全部跑在源码
 检出、开发或测试模式下，而运维实际部署的是镜像、跑的是 `NODE_ENV=production`。
 这个盲区里曾同时躺着两个已发布的缺陷——`backend/Dockerfile` 还在 COPY 早已删掉的
 `prisma/`（镜像根本构建不出来），以及生产模式下不配 `REDIS_URL` 会让 `/health`、
@@ -117,7 +119,8 @@ scope 用模块名（`bazi` / `ziwei` / `liuyao` / `liuren` / `qimen` / `cli` / 
 - [ ] 动了接口 → 重新生成并提交了 `docs/openapi.json`
 - [ ] 动了算法 → 补了测试，且测试样例有典籍或流派依据
 - [ ] 涉及流派选择 → 在代码里就地注明，并同步进 SKILL.md
-- [ ] 动了行为/配置/部署方式 → 同步更新了对应文档
+- [ ] 动了行为/配置/部署方式 → 按 [docs/README.md](docs/README.md) 同步表改了对应文档
+- [ ] `./scripts/check-docs.sh` 通过
 - [ ] 一次提交只做一件事
 
 ### 不做的改动

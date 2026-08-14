@@ -74,7 +74,7 @@
 ## 最快如何本地启动？
 
 ```bash
-git clone https://github.com/tytsxai-stack/metaphysics-engine.git
+git clone https://github.com/tytsxai/metaphysics-engine.git
 cd metaphysics-engine
 
 ./bazi setup     # 装依赖 + 生成 .env
@@ -108,12 +108,11 @@ curl http://127.0.0.1:4000/api/ai/providers
 
 ## `./bazi` CLI 能做什么？
 
-两类命令：
+三类命令（以 `./bazi help --json` 的 `kind` 为准，这里不列子命令）：
 
-- **能力** —— `calc`（八字/紫微/六爻/六壬/奇门/风水/择吉/姓名/合盘/星座/上升/流日）、
-  `cast`（易经/塔罗），是这个项目对外输出的算法能力
-- **运维** —— `setup`、`doctor`、`env`、`stack`、`test`，维护这个仓库本身；
-  `schema` 把命令树导出成 agent tool schema（anthropic / openai / mcp 三种形状）
+- **能力** —— `calc` / `cast`，算法本身
+- **运维** —— `setup`、`doctor`、`env`、`stack`、`test`，维护这个仓库
+- **接入** —— `schema` 导出 tool 定义；`mcp` 把同一棵树挂成 stdio MCP server
 
 所有命令支持 `--json`：stdout 只有一个 JSON 文档，进度走 stderr。退出码是契约：
 `0` 成功 / `1` 结果失败 / `2` 用法错 / `3` 环境未就绪 / `4` 远端拒绝 / `5` 可重试 /
@@ -148,7 +147,7 @@ MIT 许可证，允许 fork、修改、闭源分发和商业使用。
 记录一处口径问题时要带全：完整可复现的输入、当前输出、你认为正确的输出，以及**依据的典籍或流派**
 （最后这条最关键——没有依据的算法改动没法验证，测试样例也只是把当前实现又抄了一遍）。
 
-先分清是「算错了」还是「流派不同」，加一门新术数要动哪九处、本地质量门槛见
+先分清是「算错了」还是「流派不同」，加一门新术数要动哪几处、本地质量门槛见
 [../CONTRIBUTING.md](../CONTRIBUTING.md)。
 
 ## 输出结果可以作为专业建议吗？

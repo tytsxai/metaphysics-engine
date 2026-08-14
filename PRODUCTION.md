@@ -1,6 +1,6 @@
 # 生产部署指南
 
-> 版本: v0.3.0 | 更新: 2026-07-29
+> 三种部署的对照见 [docs/deployment.md](docs/deployment.md)，排错见 [docs/operations.md](docs/operations.md)，配置见 [docs/configuration.md](docs/configuration.md)。本页保留生产栈的细节：排水时序、告警规则、Nginx、安全要点。
 
 本指南以 Docker Compose 为例，目标环境：引擎 + 可选 Redis + Nginx 反向代理。
 
