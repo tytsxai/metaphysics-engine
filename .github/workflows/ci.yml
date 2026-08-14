@@ -30,6 +30,9 @@ jobs:
       - name: Check no build/test artifacts are committed
         run: ./scripts/check-repo-artifacts.sh
 
+      - name: Check docs do not advertise deleted CLI or the wrong remote
+        run: ./scripts/check-docs.sh
+
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:

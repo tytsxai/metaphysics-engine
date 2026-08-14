@@ -23,6 +23,11 @@
 - [ ] 同步更新了 `docs/api.md`
 - [ ] 如果加了 CLI 命令：声明了 `effect` 与 `reproducibility`
 
+## 如果动了配置 / 部署 / 模块边界
+
+- [ ] 按 `docs/README.md` 的同步表改了对应文档
+- [ ] `./scripts/check-docs.sh` 通过
+
 ## 验证
 
 - [ ] `./bazi test` 全绿（cli + lint + backend + engine）
