@@ -71,7 +71,7 @@ const mapHttpFailure = ({ response, body, base, method, path }) => {
       exit: EXIT.FAILED,
       code: 'endpoint_missing',
       hint: 'CLI 与引擎版本可能不一致，或该能力已下线。',
-      next: 'bazi stack restart --only api',
+      next: 'bazi stack restart',
       details,
     });
   }
@@ -81,7 +81,7 @@ const mapHttpFailure = ({ response, body, base, method, path }) => {
       exit: EXIT.FAILED,
       code: 'engine_error',
       hint: '请求本身是合法的，失败发生在引擎内部。',
-      next: 'bazi stack logs api --tail 60',
+      next: 'bazi stack logs --tail 60',
       details,
     });
   }
@@ -130,7 +130,7 @@ export const callApi = async (
     }
     throw envError(`连不上算法引擎 ${base}`, {
       hint: '引擎是常驻进程，CLI 只是它的客户端 —— 进程没起来就什么都算不了。',
-      next: 'bazi stack up --only api',
+      next: 'bazi stack up',
       details: { method, path, url, cause: error?.message || String(error) },
     });
   }
@@ -154,7 +154,7 @@ export const callApi = async (
       exit: EXIT.FAILED,
       code: 'bad_response',
       hint: '能力端点约定返回 JSON，收到的却不是。',
-      next: 'bazi stack logs api --tail 60',
+      next: 'bazi stack logs --tail 60',
       details: { method, path, sample: raw.slice(0, 200) },
     });
   }

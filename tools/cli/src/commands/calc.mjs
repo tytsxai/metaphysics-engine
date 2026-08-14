@@ -992,7 +992,7 @@ export const calcCommand = defineCommand({
   summary:
     '算法能力：确定性推算（八字 / 紫微 / 六爻 / 六壬 / 奇门 / 风水 / 择吉 / 姓名 / 合盘 / 星座）',
   description:
-    '这些命令是引擎的客户端，跑之前引擎必须在跑（bazi stack up --only api）。\n' +
+    '这些命令是引擎的客户端，跑之前引擎必须在跑（bazi stack up）。\n' +
     '连不上会退 3 并给出拉起引擎的命令；引擎拒绝请求退 4；被限流退 5。\n\n' +
     '起课类命令（liuren / qimen / liuyao / almanac）不给 --date 时取引擎当日，\n' +
     '**此时结果不可复现**，输出末尾会标注。要可复现就显式给 --date 和 --hour。\n' +

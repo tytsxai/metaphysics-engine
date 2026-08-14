@@ -151,7 +151,7 @@ export const castCommand = defineCommand({
   summary: '算法能力：起卦抽牌（易经 / 塔罗）',
   description:
     '与 calc 的区别是结果不保证可复现：塔罗每次重新随机，时间起卦取决于调用时刻。\n' +
-    '跑之前引擎必须在跑（bazi stack up --only api）。',
+    '跑之前引擎必须在跑（bazi stack up）。',
   kind: 'capability',
   effect: 'read-only',
   reproducibility: {

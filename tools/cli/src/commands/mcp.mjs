@@ -121,7 +121,7 @@ export const mcpCommand = defineCommand({
     '默认只暴露算法能力（calc / cast），全部只读。运维命令要用 --scope 显式放进来，\n' +
     '其中的破坏性操作仍然受 CLI 自己的安全闸约束（缺 --yes 会退 7），\n' +
     '因为每次调用都是真的去跑一次 CLI，而不是在进程内绕过它。\n\n' +
-    '引擎要先起着：算法能力是引擎的客户端，`bazi stack up --only api`。',
+    '引擎要先起着：算法能力是引擎的客户端，`bazi stack up`。',
   usage: 'bazi mcp [--scope capability|ops|all]',
   flags: [
     {
